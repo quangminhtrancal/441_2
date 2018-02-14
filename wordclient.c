@@ -32,6 +32,10 @@
 
 int main(void)
   {
+
+
+
+    //-------------UDP ------------------------
     struct sockaddr_in si_server;
     struct sockaddr *server;
     int s, i, len = sizeof(si_server);

@@ -31,6 +31,10 @@
 
 int main(int argc, char *argv[])
   {
+		// TCP to sdk for FILE
+
+
+		//----------- UDP ----------------------
     struct sockaddr_in si_server, si_client;
     struct sockaddr *server, *client;
     int s, i, len=sizeof(si_server);
