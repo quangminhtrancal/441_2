@@ -36,7 +36,7 @@ int main(void)
     // TCP -------------------- for getting file information
     /* Address initialization */
 	struct sockaddr_in server1;
-	int MYPORTNUM = 80;
+	int MYPORTNUM = 8002;
 	memset(&server1, 0, sizeof(server1));
 	server1.sin_family = AF_INET;
 	server1.sin_port = htons(MYPORTNUM);
@@ -127,8 +127,8 @@ int main(void)
 
     if (inet_pton(AF_INET, SERVER_IP, &si_server.sin_addr)==0)
       {
-	printf("inet_pton() failed\n");
-	return 1;
+					printf("inet_pton() failed\n");
+					return 1;
       }
 
     printf("This is the client side of the wordserver demo...\n");

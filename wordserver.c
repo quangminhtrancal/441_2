@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 		// ------------TCP to sdk for FILE--------------------------
 /* Address initialization */
 	struct sockaddr_in server1;
-	int MYPORTNUM = 8001;
+	int MYPORTNUM = 8002;
 	memset(&server1, 0, sizeof(server1));
 	server1.sin_family = AF_INET;
 	server1.sin_port = htons(MYPORTNUM);
@@ -68,6 +68,12 @@ int main(int argc, char *argv[])
 		printf("Error in bind()\n");
 		exit(-1);
 	}
+		/* Connect to TCP server */
+	status = listen(lstn_sock, 5);
+	if (status < 0) {
+		printf("Error in listen()\n");
+		exit(-1);
+	}
 
 		int rcv_file_request=0;
 		while (rcv_file_request == 0){
@@ -75,8 +81,7 @@ int main(int argc, char *argv[])
 										//--- WHILE loop
 				/* Accept a connection */
 					int connected_sock;
-					connected_sock = accept(lstn_sock, NULL,
-					NULL);
+					connected_sock = accept(lstn_sock, NULL,NULL);
 					if (connected_sock < 0) {
 						printf("Error in accept()\n");
 						exit(-1);
@@ -93,6 +98,7 @@ int main(int argc, char *argv[])
 
 					char rcv_message[1024];
 					count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
+					printf("Received message is %s\n",rcv_message);
 					if (count < 0) {
 						printf("Error in recv()\n");
 					} else {
@@ -100,7 +106,7 @@ int main(int argc, char *argv[])
 						{
 								char filename[10][1024] = { "736.txt-736","739.txt-739","1KB.txt-1024",
 								"2KB.txt-2048","4KB.txt-4096","8KB.txt-8192","8888.txt-8888","32KB.txt-32768","256KB.txt-262144" };
-								count = send(connected_sock, filename, sizeof(message), 0);
+								count = send(connected_sock, filename[1], sizeof(filename[1]), 0);
 								if (count < 0) {
 									printf("Error in send()\n");
 								}
