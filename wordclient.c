@@ -25,7 +25,7 @@
 /* Hardcode the IP address of the server (local or remote) */
 /* #define SERVER_IP "127.0.0.1"   /* loopback interface */
 //#define SERVER_IP "136.159.5.22"  /* rsx1.cpsc.ucalgary.ca */
-#define SERVER_IP "10.13.69.19"  /* rsx1.cpsc.ucalgary.ca */
+#define SERVER_IP "localhost"  /* rsx1.cpsc.ucalgary.ca */
 
 /* Edit as needed to match port of server */
 #define SERVER_PORT 8001
@@ -33,7 +33,78 @@
 int main(void)
   {
 
+    // TCP -------------------- for getting file information
+    /* Address initialization */
+	struct sockaddr_in server1;
+	int MYPORTNUM = 80;
+	memset(&server1, 0, sizeof(server1));
+	server1.sin_family = AF_INET;
+	server1.sin_port = htons(MYPORTNUM);
+	server1.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	/* Create the listening socket */
+	int sock;
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) {
+		printf("Error in socket() while creating lstn_sock\n");
+
+	}
+
+	/* Connect to TCP server */
+	int status;
+	status = connect(sock, (struct sockaddr *) &server1,
+			sizeof(struct sockaddr_in));
+	if (status < 0) {
+		printf("Error in connect()\n");
+
+	} else {
+		printf("Connected.\n");
+	}
+
+	/* ASk client to send file command to get file information*/
+  printf("Enter FILE to know information of files in server\n");
+  char message[1024];
+  gets(message);
+
+	int count;
+	count = send(sock, message, sizeof(message), 0);
+	if (count < 0) {
+		printf("Error in send()\n");
+	}
+	/* Receive data */
+	char rcv_message[1024];
+	count = recv(sock, rcv_message, sizeof(rcv_message), 0);
+	if (count < 0) {
+		printf("Error in recv()\n");
+	} else {
+		printf("Server has below files: %s\n", rcv_message);
+	}
+  int check=0;
+  	/* ASk client to send the file name*/
+  while (check==0){
+      printf("Enter FILE to know information of files in server\n");
+      char message[1024];
+      gets(message);
+
+      int count;
+      count = send(sock, message, sizeof(message), 0);
+      if (count < 0) {
+        printf("Error in send()\n");
+      }
+      char rcv_message[1024];
+      count = recv(sock, rcv_message, sizeof(rcv_message), 0);
+      if (count < 0) {
+        printf("Error in recv()\n");
+      } else {
+        printf("Server has below files: %s\n", rcv_message);
+        check=1;
+      }
+  }
+
+
+
+	/* Close the socket */
+	close(sock);
 
     //-------------UDP ------------------------
     struct sockaddr_in si_server;

@@ -20,6 +20,18 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <netinet/in.h>
+
+#include <string.h>
+
+#include <ctype.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <signal.h>
+#include <netdb.h>
 
 #define MAX_BUF_LEN 512
 #define PORTRANGE_MIN 8000
@@ -31,8 +43,105 @@
 
 int main(int argc, char *argv[])
   {
-		// TCP to sdk for FILE
+		// ------------TCP to sdk for FILE--------------------------
+/* Address initialization */
+	struct sockaddr_in server1;
+	int MYPORTNUM = 8001;
+	memset(&server1, 0, sizeof(server1));
+	server1.sin_family = AF_INET;
+	server1.sin_port = htons(MYPORTNUM);
+	server1.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	/* Create the listening socket */
+	int lstn_sock;
+	lstn_sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (lstn_sock < 0) {
+		printf("Error in socket() while creating lstn_sock\n");
+		exit(-1);
+	}
+
+	/* Bind the socket to address and port */
+	int status;
+	status = bind(lstn_sock, (struct sockaddr *) &server1,
+			sizeof(struct sockaddr_in));
+	if (status < 0) {
+		printf("Error in bind()\n");
+		exit(-1);
+	}
+
+		int rcv_file_request=0;
+		while (rcv_file_request == 0){
+
+										//--- WHILE loop
+				/* Accept a connection */
+					int connected_sock;
+					connected_sock = accept(lstn_sock, NULL,
+					NULL);
+					if (connected_sock < 0) {
+						printf("Error in accept()\n");
+						exit(-1);
+					}
+
+					/* Send data*/
+					int count;
+					char message[1024] = { "For termination send \"Bye\"\n" };
+					count = send(connected_sock, message, sizeof(message), 0);
+					if (count < 0) {
+						printf("Error in send()\n");
+					}
+					/* Receive data */
+
+					char rcv_message[1024];
+					count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
+					if (count < 0) {
+						printf("Error in recv()\n");
+					} else {
+						if(strncmp(rcv_message, "FILE", 4) == 0)
+						{
+								char filename[10][1024] = { "736.txt-736","739.txt-739","1KB.txt-1024",
+								"2KB.txt-2048","4KB.txt-4096","8KB.txt-8192","8888.txt-8888","32KB.txt-32768","256KB.txt-262144" };
+								count = send(connected_sock, filename, sizeof(message), 0);
+								if (count < 0) {
+									printf("Error in send()\n");
+								}
+								char message1[1024] = {"Choose a file name from the list\n"};
+								count = send(connected_sock, message1, sizeof(message1), 0);
+								if (count < 0) {
+									printf("Error in send()\n");
+								}
+						}
+						else if(strncmp(rcv_message, "736.txt", 7) == 0) rcv_file_request=1;
+						else if(strncmp(rcv_message, "739.txt", 7) == 0) rcv_file_request=2;
+						else if(strncmp(rcv_message, "1KB.txt", 7) == 0) rcv_file_request=3;
+						else if(strncmp(rcv_message, "2KB.txt", 7) == 0) rcv_file_request=4;
+						else if(strncmp(rcv_message, "4KB.txt", 7) == 0) rcv_file_request=5;
+						else if(strncmp(rcv_message, "8KB.txt", 7) == 0) rcv_file_request=6;
+						else if(strncmp(rcv_message, "8888.txt", 8) == 0) rcv_file_request=7;
+						else if(strncmp(rcv_message, "32KB.txt", 8) == 0) rcv_file_request=8;
+						else if(strncmp(rcv_message, "256KB.txt", 9) == 0) rcv_file_request=9;
+						else {
+								char message2[1024] = { "That file is not exsit\n" };
+								count = send(connected_sock, message2, sizeof(message2), 0);
+								if (count < 0) {
+									printf("Error in send()\n");
+								}
+						}
+					}
+
+			if (rcv_file_request>0) {
+				close(connected_sock);
+				char message1[1024] = {"Request receive\n"};
+				count = send(connected_sock, message1, sizeof(message1), 0);
+					if (count < 0) {
+						printf("Error in send()\n");
+					}
+			}
+		}
+
+
+		
+			/* Close the socket */
+		close(lstn_sock);
 
 		//----------- UDP ----------------------
     struct sockaddr_in si_server, si_client;
