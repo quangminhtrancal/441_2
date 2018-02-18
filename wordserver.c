@@ -76,10 +76,9 @@ int main(int argc, char *argv[])
 	}
 
 		int rcv_file_request=0;
-		while (rcv_file_request == 0){
 
-										//--- WHILE loop
-				/* Accept a connection */
+
+			/* Accept a connection */
 					int connected_sock;
 					connected_sock = accept(lstn_sock, NULL,NULL);
 					if (connected_sock < 0) {
@@ -87,21 +86,18 @@ int main(int argc, char *argv[])
 						exit(-1);
 					}
 
-					/* Send data*/
-					int count;
-					char message[1024] = { "For termination send \"Bye\"\n" };
-					count = send(connected_sock, message, sizeof(message), 0);
-					if (count < 0) {
-						printf("Error in send()\n");
-					}
-					/* Receive data */
-
+			// check to receive FILE command
+			int f=0;
+			while (f==0){
+				
+			
 					char rcv_message[1024];
-					count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
+					int count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
 					printf("Received message is %s\n",rcv_message);
 					if (count < 0) {
 						printf("Error in recv()\n");
-					} else {
+					} 
+					else {
 						if(strncmp(rcv_message, "FILE", 4) == 0)
 						{
 								char filename[10][1024] = { "736.txt-736","739.txt-739","1KB.txt-1024",
@@ -116,7 +112,21 @@ int main(int argc, char *argv[])
 									printf("Error in send()\n");
 								}
 						}
-						else if(strncmp(rcv_message, "736.txt", 7) == 0) rcv_file_request=1;
+				}
+			}
+
+					/* Receive data */
+		while (rcv_file_request == 0){
+
+					char rcv_message[1024];
+					int count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
+					printf("Received message is %s\n",rcv_message);
+					if (count < 0) {
+						printf("Error in recv()\n");
+					} 
+					else {
+
+						if(strncmp(rcv_message, "736.txt", 7) == 0) rcv_file_request=1;
 						else if(strncmp(rcv_message, "739.txt", 7) == 0) rcv_file_request=2;
 						else if(strncmp(rcv_message, "1KB.txt", 7) == 0) rcv_file_request=3;
 						else if(strncmp(rcv_message, "2KB.txt", 7) == 0) rcv_file_request=4;
@@ -136,7 +146,7 @@ int main(int argc, char *argv[])
 
 			if (rcv_file_request>0) {
 				close(connected_sock);
-				char message1[1024] = {"Request receive\n"};
+				char message1[1024] = {"DONE\n"};
 				count = send(connected_sock, message1, sizeof(message1), 0);
 					if (count < 0) {
 						printf("Error in send()\n");

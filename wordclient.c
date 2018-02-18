@@ -47,6 +47,7 @@ int main(void)
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
 		printf("Error in socket() while creating lstn_sock\n");
+		exit(-1);
 
 	}
 
@@ -56,6 +57,7 @@ int main(void)
 			sizeof(struct sockaddr_in));
 	if (status < 0) {
 		printf("Error in connect()\n");
+		exit(-1);
 
 	} else {
 		printf("Connected.\n");
@@ -70,19 +72,19 @@ int main(void)
 	count = send(sock, message, sizeof(message), 0);
 	if (count < 0) {
 		printf("Error in send()\n");
+		exit(-1);
 	}
 	/* Receive data */
 	char rcv_message[1024];
 	count = recv(sock, rcv_message, sizeof(rcv_message), 0);
 	if (count < 0) {
 		printf("Error in recv()\n");
+		exit(-1);
 	} else {
 		printf("Server has below files: %s\n", rcv_message);
 	}
-  int check=0;
-  	/* ASk client to send the file name*/
-  while (check==0){
-      printf("Enter FILE to know information of files in server\n");
+
+	      printf("Enter FILE name\n");
       char message[1024];
       gets(message);
 
@@ -90,14 +92,24 @@ int main(void)
       count = send(sock, message, sizeof(message), 0);
       if (count < 0) {
         printf("Error in send()\n");
+				exit(-1);
       }
+
+  int check=0;
+	int check1=0;
+  	/* ASk client to send the file name*/
+  while (check1==0){
       char rcv_message[1024];
       count = recv(sock, rcv_message, sizeof(rcv_message), 0);
       if (count < 0) {
         printf("Error in recv()\n");
+				exit(-1);
       } else {
-        printf("Server has below files: %s\n", rcv_message);
-        check=1;
+        printf("Server send this message: %s \n", rcv_message);
+				if (strncmp(rcv_message, "DONE", 4) == 0)
+					{
+						check1=1;
+					}
       }
   }
 
