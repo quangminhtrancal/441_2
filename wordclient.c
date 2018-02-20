@@ -63,43 +63,43 @@ int main(void)
 		printf("Connected.\n");
 	}
 
+	int c1=0;
 	/* ASk client to send file command to get file information*/
-  printf("Enter FILE to know information of files in server\n");
-  char message[1024];
-  gets(message);
-
-	int count;
-	count = send(sock, message, sizeof(message), 0);
-	if (count < 0) {
-		printf("Error in send()\n");
-		exit(-1);
-	}
-	/* Receive data */
-	char rcv_message[1024];
-	count = recv(sock, rcv_message, sizeof(rcv_message), 0);
-	if (count < 0) {
-		printf("Error in recv()\n");
-		exit(-1);
-	} else {
-		printf("Server has below files: %s\n", rcv_message);
+			char message[1024];
+	while(c1==0){
+		  printf("Enter FILE to know information of files in server\n");
+	
+			scanf("%s", message);
+			if(strncmp(message, "FILE", 4) == 0) c1=1;
 	}
 
-	      printf("Enter FILE name\n");
-      char message[1024];
-      gets(message);
-
-      int count;
+			int count = send(sock, message, sizeof(message), 0);
+			if (count < 0) {
+				printf("Error in send()\n");
+				exit(-1);
+			}
+			/* Receive data */
+			char rcv_message[1024];
+			count = recv(sock, rcv_message, sizeof(rcv_message), 0);
+			if (count < 0) {
+				printf("Error in recv()\n");
+				exit(-1);
+			} else {
+					printf("Server has below files: %s\n", rcv_message);
+			}
+  int check=0;
+  	/* ASk client to send the file name*/
+  while (check==0){
+			memset(&message, 0, sizeof(message));
+	    printf("Enter FILE name\n");
+			scanf("%s", message);      
       count = send(sock, message, sizeof(message), 0);
       if (count < 0) {
         printf("Error in send()\n");
 				exit(-1);
       }
 
-  int check=0;
-	int check1=0;
-  	/* ASk client to send the file name*/
-  while (check1==0){
-      char rcv_message[1024];
+			memset(&rcv_message, 0, sizeof(rcv_message));
       count = recv(sock, rcv_message, sizeof(rcv_message), 0);
       if (count < 0) {
         printf("Error in recv()\n");
@@ -108,7 +108,7 @@ int main(void)
         printf("Server send this message: %s \n", rcv_message);
 				if (strncmp(rcv_message, "DONE", 4) == 0)
 					{
-						check1=1;
+						check=1;
 					}
       }
   }
@@ -117,7 +117,7 @@ int main(void)
 
 	/* Close the socket */
 	close(sock);
-
+	//delay(1000);  // Delay 1 second for server to setup UDP
     //-------------UDP ------------------------
     struct sockaddr_in si_server;
     struct sockaddr *server;

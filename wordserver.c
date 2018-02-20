@@ -87,11 +87,9 @@ int main(int argc, char *argv[])
 					}
 
 			// check to receive FILE command
-			int f=0;
-			while (f==0){
-				
-			
-					char rcv_message[1024];
+//			int f=0;
+			char rcv_message[1024];
+//			while (f==0){
 					int count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
 					printf("Received message is %s\n",rcv_message);
 					if (count < 0) {
@@ -100,25 +98,28 @@ int main(int argc, char *argv[])
 					else {
 						if(strncmp(rcv_message, "FILE", 4) == 0)
 						{
+
 								char filename[10][1024] = { "736.txt-736","739.txt-739","1KB.txt-1024",
 								"2KB.txt-2048","4KB.txt-4096","8KB.txt-8192","8888.txt-8888","32KB.txt-32768","256KB.txt-262144" };
 								count = send(connected_sock, filename[1], sizeof(filename[1]), 0);
 								if (count < 0) {
 									printf("Error in send()\n");
 								}
-								char message1[1024] = {"Choose a file name from the list\n"};
-								count = send(connected_sock, message1, sizeof(message1), 0);
+
+/*								char message2[1024]={"Done1"};
+								count = send(connected_sock, message2, sizeof(message2), 0);
 								if (count < 0) {
 									printf("Error in send()\n");
 								}
+								f=1;*/
 						}
 				}
-			}
+	//		}
 
 					/* Receive data */
 		while (rcv_file_request == 0){
 
-					char rcv_message[1024];
+					memset(&rcv_message, 0, sizeof(rcv_message));
 					int count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
 					printf("Received message is %s\n",rcv_message);
 					if (count < 0) {
@@ -126,7 +127,10 @@ int main(int argc, char *argv[])
 					} 
 					else {
 
-						if(strncmp(rcv_message, "736.txt", 7) == 0) rcv_file_request=1;
+						if(strncmp(rcv_message, "736.txt", 7) == 0) {
+							rcv_file_request=1;
+							printf("inside here\n");
+						}
 						else if(strncmp(rcv_message, "739.txt", 7) == 0) rcv_file_request=2;
 						else if(strncmp(rcv_message, "1KB.txt", 7) == 0) rcv_file_request=3;
 						else if(strncmp(rcv_message, "2KB.txt", 7) == 0) rcv_file_request=4;
@@ -136,7 +140,7 @@ int main(int argc, char *argv[])
 						else if(strncmp(rcv_message, "32KB.txt", 8) == 0) rcv_file_request=8;
 						else if(strncmp(rcv_message, "256KB.txt", 9) == 0) rcv_file_request=9;
 						else {
-								char message2[1024] = { "That file is not exsit\n" };
+								char message2[1024] = { "That file is not exsit, resend the right file name\n" };
 								count = send(connected_sock, message2, sizeof(message2), 0);
 								if (count < 0) {
 									printf("Error in send()\n");
@@ -145,7 +149,7 @@ int main(int argc, char *argv[])
 					}
 
 			if (rcv_file_request>0) {
-				close(connected_sock);
+	
 				char message1[1024] = {"DONE\n"};
 				count = send(connected_sock, message1, sizeof(message1), 0);
 					if (count < 0) {
@@ -155,7 +159,7 @@ int main(int argc, char *argv[])
 		}
 
 
-		
+					close(connected_sock);
 			/* Close the socket */
 		close(lstn_sock);
 
@@ -173,9 +177,6 @@ int main(int argc, char *argv[])
     char verblist[MAX_VERBS][MAX_LENGTH] = { "ate", "endured", "jumped", "ran", "sat", "puked" };
     char dummylist[MAX_DUMDUMS][MAX_LENGTH] = { "dummy", "idiot", "moron" };
 
-    printf("Generating random input port!\n");
-    srandom(time(NULL));
-    //port = random()%1000 + PORTRANGE_MIN;
     port=8001;
     printf("Word server listening on port %d\n", port);
 
