@@ -19,13 +19,14 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <stdlib.h>
 
 #define MAX_BUF_LEN 512
 
 /* Hardcode the IP address of the server (local or remote) */
 /* #define SERVER_IP "127.0.0.1"   /* loopback interface */
 //#define SERVER_IP "136.159.5.22"  /* rsx1.cpsc.ucalgary.ca */
-#define SERVER_IP "localhost"  /* rsx1.cpsc.ucalgary.ca */
+#define SERVER_IP "127.0.0.1"  /* rsx1.cpsc.ucalgary.ca */
 
 /* Edit as needed to match port of server */
 #define SERVER_PORT 8001
@@ -117,8 +118,10 @@ int main(void)
 
 	/* Close the socket */
 	close(sock);
-	//delay(1000);  // Delay 1 second for server to setup UDP
+			printf("Before sleep\n");
+	//sleep(2);  // Delay 1 second for server to setup UDP
     //-------------UDP ------------------------
+
     struct sockaddr_in si_server;
     struct sockaddr *server;
     int s, i, len = sizeof(si_server);
@@ -126,21 +129,24 @@ int main(void)
     int readBytes;
     int quit;
 
-    if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
-      {
-	printf("Could not setup a socket!\n");
-	return 1;
-      }
+
 
     memset((char *) &si_server, 0, sizeof(si_server));
     si_server.sin_family = AF_INET;
-    si_server.sin_port = htons(SERVER_PORT);
+
     server = (struct sockaddr *) &si_server;
 
     if (inet_pton(AF_INET, SERVER_IP, &si_server.sin_addr)==0)
       {
 					printf("inet_pton() failed\n");
 					return 1;
+      }
+		si_server.sin_port = htons(SERVER_PORT);
+		
+	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
+      {
+	printf("Could not setup a socket!\n");
+	return 1;
       }
 
     printf("This is the client side of the wordserver demo...\n");
