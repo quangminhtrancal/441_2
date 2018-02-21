@@ -21,7 +21,7 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 
-#define MAX_BUF_LEN 512
+#define MAX_BUF_LEN 100000
 
 /* Hardcode the IP address of the server (local or remote) */
 /* #define SERVER_IP "127.0.0.1"   /* loopback interface */
@@ -118,17 +118,18 @@ int main(void)
 
 	/* Close the socket */
 	close(sock);
-			printf("Before sleep\n");
-	//sleep(2);  // Delay 1 second for server to setup UDP
     //-------------UDP ------------------------
 
     struct sockaddr_in si_server;
     struct sockaddr *server;
     int s, i, len = sizeof(si_server);
     char buf[MAX_BUF_LEN];
+		char filename[1024];
+		int filesize=736;
     int readBytes;
     int quit;
 
+		strcpy(filename,message); // Copy file name
 
 
     memset((char *) &si_server, 0, sizeof(si_server));
@@ -149,32 +150,34 @@ int main(void)
 	return 1;
       }
 
-    printf("This is the client side of the wordserver demo...\n");
-    printf("Your choices are 'noun', 'adjective', 'verb', or 'quit'\n");
-
     quit = 0;
     while(!quit)
       {
-	printf("Enter a command: ");
-	scanf("%s", buf);
+					printf("Enter a command: ");
+					scanf("%s", buf);
 
-	if(strncmp(buf, "quit", 4) == 0)
-	  quit = 1;
+					if(strncmp(buf, "quit", 4) == 0)
+						quit = 1;
 
-	if (sendto(s, buf, strlen(buf), 0, server, sizeof(si_server)) == -1)
-	  {
-	    printf("sendto failed\n");
-	    return 1;
-	  }
+					if (sendto(s, buf, strlen(buf), 0, server, sizeof(si_server)) == -1)
+						{
+							printf("sendto failed\n");
+							return 1;
+						}
 
-	if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
-	  {
-	    printf("Read error!\n");
-	    quit = 1;
-	  }
-	buf[readBytes] = '\0'; // padding with end of string symbol
-	printf("Word received from server %s on port %d is \"%s\"\n\n",
-	       inet_ntoa(si_server.sin_addr), ntohs(si_server.sin_port), buf);
+					if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
+						{
+							printf("Read error!\n");
+							quit = 1;
+						}
+					buf[readBytes] = '\0'; // padding with end of string symbol
+					FILE *f;
+						f = fopen("test.txt", "a");
+						size_t file_size=ftell(f);
+						if (file_size < filesize) fprintf(f, "%s", buf);
+						fclose(f);
+
+					printf("From server: \"%s\"\n\n", buf);
       }
     close(s);
     return 0;

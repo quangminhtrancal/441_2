@@ -22,16 +22,11 @@
 #include <sys/uio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
 #include <netinet/in.h>
-
-#include <string.h>
-
 #include <ctype.h>
-#include <unistd.h>
-#include <arpa/inet.h>
 #include <signal.h>
 #include <netdb.h>
+#include<fcntl.h>
 
 #define MAX_BUF_LEN 512
 #define PORTRANGE_MIN 8000
@@ -40,6 +35,16 @@
 #define MAX_VERBS 6
 #define MAX_DUMDUMS 3
 #define MAX_LENGTH 10
+
+/* Global variable */
+int childsockfd;
+
+/* This is a signal handler to do graceful exit if needed */
+void catcher( int sig )
+  {
+    close(childsockfd);
+    exit(0);
+  }
 
 int main(int argc, char *argv[])
   {
@@ -164,7 +169,9 @@ int main(int argc, char *argv[])
 		close(lstn_sock);
 
 		//----------- UDP ----------------------
-    struct sockaddr_in si_server, si_client;
+	int parentsockfd;
+	 int pid;
+	struct sockaddr_in si_server, si_client;
     struct sockaddr *server, *client;
     int s, i, len=sizeof(si_server);
     int port;					// Port number
@@ -172,13 +179,11 @@ int main(int argc, char *argv[])
     char tosend[10];
     int readBytes;
     int choice;
-    char nounlist[MAX_NOUNS][MAX_LENGTH] = { "dog", "horse", "lamb", "pony", "skunk" };
-    char adjlist[MAX_ADJS][MAX_LENGTH] = { "big", "fat", "huge", "lazy", "melodious", "pretty", "stinky", "yucky" };
-    char verblist[MAX_VERBS][MAX_LENGTH] = { "ate", "endured", "jumped", "ran", "sat", "puked" };
-    char dummylist[MAX_DUMDUMS][MAX_LENGTH] = { "dummy", "idiot", "moron" };
+		char filename[1024];
+		strcpy(filename, rcv_message); // SAVE file name
 
     port=8001;
-    printf("Word server listening on port %d\n", port);
+    printf("Server listening on port %d\n", port);
 
     if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
       {
@@ -201,45 +206,40 @@ int main(int argc, char *argv[])
     int quit = 0;
     while (!quit)
       {
-	if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
-	  {
-	    printf("Read error!\n");
-	    quit = 1;
-	  }
-	buf[readBytes] = '\0'; // padding with end of string symbol
 
-	printf("  Server received command \"%s\" from client %s on port %d\n",
-	       buf, inet_ntoa(si_client.sin_addr), ntohs(si_client.sin_port));
+					if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
+						{
+							printf("Read error!\n");
+							quit = 1;
+						}
+					buf[readBytes] = '\0'; // padding with end of string symbol
+					printf(" Server received: %s\n",buf);
 
-	if(strncmp(buf, "quit", 4) == 0)
-	    quit = 1;
+					if(strncmp(buf, "quit", 4) == 0) quit = 1;
 
-	if( quit == 1 )
-	  sprintf(tosend, "%s", "OK");
-	else if(strncmp(buf, "noun", 4) == 0)
-	  {
-	    choice = random()%MAX_NOUNS;
-	    sprintf(tosend, "%s", nounlist[choice]);
-	  }
-	else if(strncmp(buf, "adj", 3) == 0)
-	  {
-	    choice = random()%MAX_ADJS;
-	    sprintf(tosend, "%s", adjlist[choice]);
-	  }
-	else if(strncmp(buf, "verb", 4) == 0)
-	  {
-	    choice = random()%MAX_VERBS;
-	    sprintf(tosend, "%s", verblist[choice]);
-	  }
-	else
-	  {
-	    choice = random()%MAX_DUMDUMS;
-	    sprintf(tosend, "%s", dummylist[choice]);
-	  }
+					if( quit == 1 ) sprintf(tosend, "%s", "OK");
 
-	printf("    Sending back \"%s\" as a response\n", tosend);
-
-	sendto(s, tosend, strlen(tosend), 0, client, len);
+					// OPEN FILE and READ AND SEND
+					  FILE *fp;
+						char file_buffer[100000	];
+						fp=fopen(filename,"r");
+						if(fp==NULL)
+							{
+								printf("file does not exist\n");
+							}
+						fseek(fp,0,SEEK_END);
+						size_t file_size=ftell(fp);
+						fseek(fp,0,SEEK_SET);
+						if(fread(file_buffer,file_size,1,fp)<=0)
+							{
+								printf("unable to copy file into buffer\n");
+								exit(1);
+							}
+						if(sendto(s,file_buffer,strlen(file_buffer),0, client, len)<0)    {
+							printf("error in sending the file\n");
+							exit(1);
+						}
+						bzero(file_buffer,sizeof(file_buffer));	
       }
     close(s);
     return 0;
