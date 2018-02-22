@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 		printf("Error in socket() while creating lstn_sock\n");
 		exit(-1);
 	}
-
+	printf("Server is listening\n");
 	/* Bind the socket to address and port */
 	int status;
 	status = bind(lstn_sock, (struct sockaddr *) &server1,
@@ -104,9 +104,8 @@ int main(int argc, char *argv[])
 						if(strncmp(rcv_message, "FILE", 4) == 0)
 						{
 
-								char filename[10][1024] = { "736.txt-736","739.txt-739","1KB.txt-1024",
-								"2KB.txt-2048","4KB.txt-4096","8KB.txt-8192","8888.txt-8888","32KB.txt-32768","256KB.txt-262144" };
-								count = send(connected_sock, filename[1], sizeof(filename[1]), 0);
+								char filename[1024] = { "\n736.txt-736\r\n739.txt-739\r\n1KB.txt-1024\r\n2KB.txt-2048\r\n4KB.txt-4096\r\n8KB.txt-8192\r\n8888.txt-8888\r\n32KB.txt-32768\r\n256KB.txt-262144\r\n" };
+								count = send(connected_sock, filename, sizeof(filename), 0);
 								if (count < 0) {
 									printf("Error in send()\n");
 								}
@@ -134,7 +133,7 @@ int main(int argc, char *argv[])
 
 						if(strncmp(rcv_message, "736.txt", 7) == 0) {
 							rcv_file_request=1;
-							printf("inside here\n");
+							//printf("inside here\n");
 						}
 						else if(strncmp(rcv_message, "739.txt", 7) == 0) rcv_file_request=2;
 						else if(strncmp(rcv_message, "1KB.txt", 7) == 0) rcv_file_request=3;
@@ -154,7 +153,9 @@ int main(int argc, char *argv[])
 					}
 
 			if (rcv_file_request>0) {
-	
+				
+
+
 				char message1[1024] = {"DONE\n"};
 				count = send(connected_sock, message1, sizeof(message1), 0);
 					if (count < 0) {
@@ -220,8 +221,10 @@ int main(int argc, char *argv[])
 					if( quit == 1 ) sprintf(tosend, "%s", "OK");
 
 					// OPEN FILE and READ AND SEND
-					  FILE *fp;
-						char file_buffer[100000	];
+					FILE *fp;
+						char file_buffer[1000000];
+						char replaced_buffer[1000000];
+
 						fp=fopen(filename,"r");
 						if(fp==NULL)
 							{
@@ -229,12 +232,67 @@ int main(int argc, char *argv[])
 							}
 						fseek(fp,0,SEEK_END);
 						size_t file_size=ftell(fp);
-						fseek(fp,0,SEEK_SET);
-						if(fread(file_buffer,file_size,1,fp)<=0)
+					printf("The file size is %d\n", file_size);
+						// Size processing
+					int size8=0;
+					int mod8=0;
+					int index[8];
+					char sub_buffer[9][10000];
+					memset(&replaced_buffer, 0, sizeof(replaced_buffer));
+
+					memset(&sub_buffer, 0, sizeof(sub_buffer));
+				
+						// Send information
+					fseek(fp,0,SEEK_SET);
+					if(fread(file_buffer,file_size,1,fp)<=0)
 							{
 								printf("unable to copy file into buffer\n");
 								exit(1);
 							}
+
+					// Break into smaller chunks
+					strcpy(replaced_buffer,file_buffer);
+
+					//printf("Replace buffer %s\n", file_buffer);
+					char sequence[8][100]={"000","001","010","011"
+											,"100","101","110","111"};
+					if (file_size > 8888) {
+						// divide to smaller two octoput
+					}
+					else if (file_size <= 8888){
+						size8=file_size/8;
+						mod8=file_size % 8; 
+						int count_leg=0;
+					
+						index[0]=size8;
+						while(count_leg<8){
+							for (int j=0;j<strlen(replaced_buffer);j++){
+								sub_buffer[count_leg][j%size8]=replaced_buffer[j];
+								if(j==index[count_leg]-1){
+									sub_buffer[count_leg][j%size8+1]='$';
+									sub_buffer[count_leg][j%size8+2]=sequence[count_leg][0];
+									sub_buffer[count_leg][j%size8+3]=sequence[count_leg][1];
+									sub_buffer[count_leg][j%size8+4]=sequence[count_leg][2];
+									count_leg+=1;
+									index[count_leg]=index[count_leg-1]+size8;
+								}
+							}
+						}
+					}
+					for (int i=0; i<8; i++){
+						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
+					}	
+					if (mod8!=0){
+						for (int j=1;j<mod8;j++){
+							sub_buffer[8][j]=replaced_buffer[index[7]+j];
+						}
+						for (int j=mod8;j<size8;j++){
+							sub_buffer[8][j]=' ';
+						}
+					}
+					printf("Buffer 8 is %s\n",sub_buffer[8]);
+					// Send to client
+
 						if(sendto(s,file_buffer,strlen(file_buffer),0, client, len)<0)    {
 							printf("error in sending the file\n");
 							exit(1);
@@ -244,3 +302,16 @@ int main(int argc, char *argv[])
     close(s);
     return 0;
   }
+
+int max(int num1, int num2) {
+
+   /* local variable declaration */
+   int result;
+ 
+   if (num1 > num2)
+      result = num1;
+   else
+      result = num2;
+ 
+   return result; 
+}

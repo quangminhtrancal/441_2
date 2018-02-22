@@ -21,7 +21,7 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 
-#define MAX_BUF_LEN 100000
+#define MAX_BUF_LEN 1000000
 
 /* Hardcode the IP address of the server (local or remote) */
 /* #define SERVER_IP "127.0.0.1"   /* loopback interface */
@@ -89,6 +89,11 @@ int main(void)
 					printf("Server has below files: %s\n", rcv_message);
 			}
   int check=0;
+	char rawname[1024];
+	char filename[1000];
+	int filesize=0;
+	char temp[1000];
+	strcpy(rawname,rcv_message);
   	/* ASk client to send the file name*/
   while (check==0){
 			memset(&message, 0, sizeof(message));
@@ -100,6 +105,7 @@ int main(void)
 				exit(-1);
       }
 
+
 			memset(&rcv_message, 0, sizeof(rcv_message));
       count = recv(sock, rcv_message, sizeof(rcv_message), 0);
       if (count < 0) {
@@ -109,11 +115,29 @@ int main(void)
         printf("Server send this message: %s \n", rcv_message);
 				if (strncmp(rcv_message, "DONE", 4) == 0)
 					{
+						strcpy(filename,message);
+					  for (char* t = strtok(rawname, "\r\n"); t != NULL; t = strtok(NULL, "\r\n")){
+									if (strstr(t,filename)) {
+											printf("The data %s\n", t);
+											int count=0;
+
+											for (int i=0; i< strlen(t);i++){
+												if (t[i]=='-'){
+													for (int j=i+1;j<strlen(t);j++){
+														temp[j-i-1]=t[j];
+													}
+													break;
+												}
+											}
+											break;
+										}
+									}
 						check=1;
 					}
       }
   }
-
+	filesize=atoi(temp);
+	printf("The size is %d\n",filesize);
 
 
 	/* Close the socket */
@@ -124,12 +148,11 @@ int main(void)
     struct sockaddr *server;
     int s, i, len = sizeof(si_server);
     char buf[MAX_BUF_LEN];
-		char filename[1024];
-		int filesize=736;
+	//	int filesize=736;
     int readBytes;
     int quit;
 
-		strcpy(filename,message); // Copy file name
+	//	strcpy(filename,message); // Copy file name
 
 
     memset((char *) &si_server, 0, sizeof(si_server));
