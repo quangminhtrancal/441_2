@@ -174,6 +174,15 @@ int main(void)
       }
 
     quit = 0;
+		char sequence[9][100]={"10000000","01000000","00100000","00010000"
+											,"00001000","00000100","00000010","00000001","11111111"};
+		char sub_buffer[9][10000];
+		char total_receive[100000];
+		memset(&sub_buffer, 0, sizeof(sub_buffer));
+		memset(&total_receive, 0, sizeof(total_receive));
+		check=0;
+		int fsize=0;
+		char ack[1000];
     while(!quit)
       {
 					printf("Enter a command: ");
@@ -193,15 +202,46 @@ int main(void)
 							printf("Read error!\n");
 							quit = 1;
 						}
-					buf[readBytes] = '\0'; // padding with end of string symbol
-					FILE *f;
+					//buf[readBytes] = '\0'; // padding with end of string symbol
+					// Check if the receive is the octo-leg
+					if (strlen(buf)==(filesize/8+8)){
+							char order[100];
+							strncpy(order,buf,8);
+							for (int i=0; i<9;i++){
+								if (sequence[i]==order){
+									strcpy(sub_buffer[i],buf);
+									sprintf(ack,"ACK%d",i);
+									if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
+									{
+										printf("sendto failed\n");
+										return 1;
+									}
+									memset(&ack, 0, sizeof(ack));
+									break;
+								}
+							}
+							fsize+=strlen(buf)-8;
+					}
+
+					if (fsize==filesize){
+						//merge all sequence
+							for (int i=0; i<9;i++){
+								strcat(total_receive,sub_buffer[i]);
+							}
+						FILE *f;
 						f = fopen("test.txt", "a");
 						size_t file_size=ftell(f);
-						if (file_size < filesize) fprintf(f, "%s", buf);
+						if (file_size < filesize) {
+							remove("test.txt");
+							fprintf(f, "%s", total_receive);
+						}
 						fclose(f);
 
-					printf("From server: \"%s\"\n\n", buf);
-      }
+						printf("From server: \"%s\"\n\n", total_receive);
+     			}
+			}
+
+
     close(s);
     return 0;
   }

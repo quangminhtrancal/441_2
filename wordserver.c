@@ -216,7 +216,14 @@ int main(int argc, char *argv[])
 					buf[readBytes] = '\0'; // padding with end of string symbol
 					printf(" Server received: %s\n",buf);
 
-					if(strncmp(buf, "quit", 4) == 0) quit = 1;
+					if(strncmp(buf, "DONE_MERGE", 10) == 0) {
+						printf("Client received file\n");
+					} 
+					
+					if(strncmp(buf, "quit", 4) == 0) {
+						quit = 1;
+						break;
+					}
 
 					if( quit == 1 ) sprintf(tosend, "%s", "OK");
 
@@ -232,7 +239,7 @@ int main(int argc, char *argv[])
 							}
 						fseek(fp,0,SEEK_END);
 						size_t file_size=ftell(fp);
-					printf("The file size is %d\n", file_size);
+						printf("The file size is %d\n", file_size);
 						// Size processing
 					int size8=0;
 					int mod8=0;
@@ -254,8 +261,8 @@ int main(int argc, char *argv[])
 					strcpy(replaced_buffer,file_buffer);
 
 					//printf("Replace buffer %s\n", file_buffer);
-					char sequence[8][100]={"000","001","010","011"
-											,"100","101","110","111"};
+					char sequence[9][100]={"10000000","01000000","00100000","00010000"
+											,"00001000","00000100","00000010","00000001","11111111"};
 					if (file_size > 8888) {
 						// divide to smaller two octoput
 					}
@@ -269,10 +276,21 @@ int main(int argc, char *argv[])
 							for (int j=0;j<strlen(replaced_buffer);j++){
 								sub_buffer[count_leg][j%size8]=replaced_buffer[j];
 								if(j==index[count_leg]-1){
+									char temp[10000];
+									strcpy(temp,sequence[count_leg]);
+									strcat(temp,sub_buffer[count_leg]);
+									strcpy(sub_buffer[count_leg],temp);
+									/*
 									sub_buffer[count_leg][j%size8+1]='$';
 									sub_buffer[count_leg][j%size8+2]=sequence[count_leg][0];
 									sub_buffer[count_leg][j%size8+3]=sequence[count_leg][1];
 									sub_buffer[count_leg][j%size8+4]=sequence[count_leg][2];
+									sub_buffer[count_leg][j%size8+5]=sequence[count_leg][3];
+									sub_buffer[count_leg][j%size8+6]=sequence[count_leg][4];
+									sub_buffer[count_leg][j%size8+7]=sequence[count_leg][5];
+									sub_buffer[count_leg][j%size8+8]=sequence[count_leg][6];
+									sub_buffer[count_leg][j%size8+9]=sequence[count_leg][7];*/
+									
 									count_leg+=1;
 									index[count_leg]=index[count_leg-1]+size8;
 								}
@@ -286,17 +304,38 @@ int main(int argc, char *argv[])
 						for (int j=1;j<mod8;j++){
 							sub_buffer[8][j]=replaced_buffer[index[7]+j];
 						}
-						for (int j=mod8;j<size8;j++){
+						
+						int j=0;						
+						for (j=mod8;j<size8;j++){
 							sub_buffer[8][j]=' ';
 						}
+									sub_buffer[8][j%size8+1]='$';
+									sub_buffer[8][j%size8+2]=sequence[8][0];
+									sub_buffer[8][j%size8+3]=sequence[8][1];
+									sub_buffer[8][j%size8+4]=sequence[8][2];
+									sub_buffer[8][j%size8+5]=sequence[8][3];
+									sub_buffer[8][j%size8+6]=sequence[8][4];
+									sub_buffer[8][j%size8+7]=sequence[8][5];
+									sub_buffer[8][j%size8+8]=sequence[8][6];
+									sub_buffer[8][j%size8+9]=sequence[8][7];						
 					}
 					printf("Buffer 8 is %s\n",sub_buffer[8]);
-					// Send to client
-
+					// Send to client; wait for ACK from client ACK0,ACK1,.. ,ACK7, ACK8
+					for (int i=0; i<9;i++){
+						if(sendto(s,sub_buffer[i],strlen(sub_buffer[i]),0, client, len)<0)    {
+							printf("error in sending the file\n");
+							exit(1);
+						}
+					}
+						/*
 						if(sendto(s,file_buffer,strlen(file_buffer),0, client, len)<0)    {
 							printf("error in sending the file\n");
 							exit(1);
 						}
+						*/
+					for (int i=0; i<9;i++){
+						bzero(sub_buffer[i],sizeof(sub_buffer[i]));
+					}
 						bzero(file_buffer,sizeof(file_buffer));	
       }
     close(s);
