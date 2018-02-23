@@ -229,10 +229,11 @@ int main(void)
 								strcat(total_receive,sub_buffer[i]);
 							}
 						FILE *f;
+						remove("test.txt");
 						f = fopen("test.txt", "a");
 						size_t file_size=ftell(f);
 						if (file_size < filesize) {
-							remove("test.txt");
+							
 							fprintf(f, "%s", total_receive);
 						}
 						fclose(f);

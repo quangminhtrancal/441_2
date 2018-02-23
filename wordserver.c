@@ -300,6 +300,7 @@ int main(int argc, char *argv[])
 					for (int i=0; i<8; i++){
 						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
 					}	
+					// if there is remaining
 					if (mod8!=0){
 						for (int j=1;j<mod8;j++){
 							sub_buffer[8][j]=replaced_buffer[index[7]+j];
@@ -309,6 +310,7 @@ int main(int argc, char *argv[])
 						for (j=mod8;j<size8;j++){
 							sub_buffer[8][j]=' ';
 						}
+						/*
 									sub_buffer[8][j%size8+1]='$';
 									sub_buffer[8][j%size8+2]=sequence[8][0];
 									sub_buffer[8][j%size8+3]=sequence[8][1];
@@ -317,7 +319,14 @@ int main(int argc, char *argv[])
 									sub_buffer[8][j%size8+6]=sequence[8][4];
 									sub_buffer[8][j%size8+7]=sequence[8][5];
 									sub_buffer[8][j%size8+8]=sequence[8][6];
-									sub_buffer[8][j%size8+9]=sequence[8][7];						
+									sub_buffer[8][j%size8+9]=sequence[8][7];	
+							*/
+						char temp[10000];
+						strcpy(temp,sequence[8]);
+						strcat(temp,sub_buffer[8]);
+						strcpy(sub_buffer[8],temp);		
+					
+									
 					}
 					printf("Buffer 8 is %s\n",sub_buffer[8]);
 					// Send to client; wait for ACK from client ACK0,ACK1,.. ,ACK7, ACK8
