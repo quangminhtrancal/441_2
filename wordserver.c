@@ -35,7 +35,7 @@
 #define MAX_VERBS 6
 #define MAX_DUMDUMS 3
 #define MAX_LENGTH 10
-
+#define TIME_OUT 10
 /* Global variable */
 int childsockfd;
 
@@ -263,6 +263,11 @@ int main(int argc, char *argv[])
 					//printf("Replace buffer %s\n", file_buffer);
 					char sequence[9][100]={"10000000","01000000","00100000","00010000"
 											,"00001000","00000100","00000010","00000001","11111111"};
+					// Array to set the bit to 1 if the ACK of that sequence has been received for double checking
+					int ACK_receive[9][1];
+					memset(&ACK_receive, 0, sizeof(ACK_receive)); // Set to zero meaning that there is no receiving of any ACK yet
+					int count_ACK=0; // Variable to check the number of ACK received from Client
+
 					if (file_size > 8888) {
 						// divide to smaller two octoput
 					}
@@ -280,17 +285,6 @@ int main(int argc, char *argv[])
 									strcpy(temp,sequence[count_leg]);
 									strcat(temp,sub_buffer[count_leg]);
 									strcpy(sub_buffer[count_leg],temp);
-									/*
-									sub_buffer[count_leg][j%size8+1]='$';
-									sub_buffer[count_leg][j%size8+2]=sequence[count_leg][0];
-									sub_buffer[count_leg][j%size8+3]=sequence[count_leg][1];
-									sub_buffer[count_leg][j%size8+4]=sequence[count_leg][2];
-									sub_buffer[count_leg][j%size8+5]=sequence[count_leg][3];
-									sub_buffer[count_leg][j%size8+6]=sequence[count_leg][4];
-									sub_buffer[count_leg][j%size8+7]=sequence[count_leg][5];
-									sub_buffer[count_leg][j%size8+8]=sequence[count_leg][6];
-									sub_buffer[count_leg][j%size8+9]=sequence[count_leg][7];*/
-									
 									count_leg+=1;
 									index[count_leg]=index[count_leg-1]+size8;
 								}
@@ -310,45 +304,122 @@ int main(int argc, char *argv[])
 						for (j=mod8;j<size8;j++){
 							sub_buffer[8][j]=' ';
 						}
-						/*
-									sub_buffer[8][j%size8+1]='$';
-									sub_buffer[8][j%size8+2]=sequence[8][0];
-									sub_buffer[8][j%size8+3]=sequence[8][1];
-									sub_buffer[8][j%size8+4]=sequence[8][2];
-									sub_buffer[8][j%size8+5]=sequence[8][3];
-									sub_buffer[8][j%size8+6]=sequence[8][4];
-									sub_buffer[8][j%size8+7]=sequence[8][5];
-									sub_buffer[8][j%size8+8]=sequence[8][6];
-									sub_buffer[8][j%size8+9]=sequence[8][7];	
-							*/
 						char temp[10000];
 						strcpy(temp,sequence[8]);
 						strcat(temp,sub_buffer[8]);
 						strcpy(sub_buffer[8],temp);		
-					
-									
+						count_ACK=9;
 					}
+					else count_ACK=8;
+
 					printf("Buffer 8 is %s\n",sub_buffer[8]);
-					// Send to client; wait for ACK from client ACK0,ACK1,.. ,ACK7, ACK8
+			int send=0; // Variable to check if all has been sent
+					/// Follow pseudocode from assignment help
+			while(send==0){
+
 					for (int i=0; i<9;i++){
-						if(sendto(s,sub_buffer[i],strlen(sub_buffer[i]),0, client, len)<0)    {
+						if(sendto(s,sub_buffer[i],strlen(sub_buffer[i]),0, client, len)<0){
 							printf("error in sending the file\n");
 							exit(1);
 						}
 					}
-						/*
-						if(sendto(s,file_buffer,strlen(file_buffer),0, client, len)<0)    {
-							printf("error in sending the file\n");
+
+
+					//***********************************Create a pipe1 for timer
+					int fd1[2];  // Used to store two ends of first pipe; 0 for read and 1 for writing
+					if (pipe(fd1)==-1)
+					{
+						fprintf(stderr, "Pipe 1 Failed" );
+						return 1;
+					}
+
+					//Call fork() to create child1 process
+					
+					int pid1;
+
+					pid1=fork();
+					if (pid1 < 0) {
+						perror("UDP Server: ERROR while forking new process 1.\n");
+						exit(1);
+					}
+					// check if the process ID is zero
+					else if (pid1 == 0) {
+						// we are now inside the child process for the 
+						// Set timer
+						sleep(TIME_OUT);
+						char notification[100]="TIMEOUT";
+         				close(fd1[0]);  // Close reading end of first pipe
+				        write(fd1[1], notification, strlen(notification)+1);
+				        close(fd1[1]);
+						exit(0);
+					}
+					else{
+						// This is parent process
+
+						// ********************************Create a pipe 2 for ACK
+						int fd2[2];
+						if (pipe(fd2)==-1)
+						{
+							fprintf(stderr, "Pipe 2 Failed" );
+							return 1;
+						}
+
+						int pid2=fork();
+						if (pid2 < 0) {
+							perror("UDP Server: ERROR while forking new process 2.\n");
 							exit(1);
 						}
-						*/
-					for (int i=0; i<9;i++){
-						bzero(sub_buffer[i],sizeof(sub_buffer[i]));
+						// check if the process ID is zero, this is child process
+						else if (pid2 == 0) {
+							if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
+							{
+								printf("Read error!\n");
+								quit = 1;
+							}
+							buf[readBytes] = '\0'; // padding with end of string symbol
+							printf(" Server received: %s\n",buf);
+
+							if(strstr(buf, "ACK") == 0) {
+								write(fd2[1], buf, strlen(buf)+1);
+								 close(fd1[1]);
+								exit(0);
+							} 
+						}
+						else{
+							// This is parent process
+							while(count_ACK!=0){
+								char message2[100];
+								char message1[100];
+								read(fd2[0], message2, 100);
+								int num=atoi(message2[3]);
+								if (num<=9 && num >=0){
+									//if (ACK_receive[num]==0) 
+									//{
+										count_ACK-=1;
+									//	ACK_receive[num]=1;
+									//}
+								}
+								close(fd2[0]);
+
+								read(fd1[0], message1, 100);
+								if (strstr(message1,"TIMEOUT")==0){
+									close(fd1[0]);
+									break;
+
+								}
+							}
+							if (count_ACK==0) send=1;
+						}
 					}
-						bzero(file_buffer,sizeof(file_buffer));	
-      }
+			}
+					// Reset to zero
+			for (int i=0; i<9;i++){
+				bzero(sub_buffer[i],sizeof(sub_buffer[i]));
+				bzero(file_buffer,sizeof(file_buffer));	
+			}
     close(s);
     return 0;
+  }
   }
 
 int max(int num1, int num2) {
