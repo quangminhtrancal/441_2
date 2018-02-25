@@ -183,33 +183,36 @@ int main(void)
 		check=0;
 		int fsize=0;
 		char ack[1000];
-    while(!quit)
-      {
-					printf("Enter a command: ");
+
+	printf("Enter START command: ");
 					scanf("%s", buf);
 
-					if(strncmp(buf, "quit", 4) == 0)
-						quit = 1;
+	if (sendto(s, buf, strlen(buf), 0, server, sizeof(si_server)) == -1)
+	{							
+		printf("sendto failed\n");
+		return 1;
+	}
 
-					if (sendto(s, buf, strlen(buf), 0, server, sizeof(si_server)) == -1)
-						{
-							printf("sendto failed\n");
-							return 1;
-						}
+    while(!quit)
+      {
 
 					if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
 						{
 							printf("Read error!\n");
 							quit = 1;
 						}
-					//buf[readBytes] = '\0'; // padding with end of string symbol
+					else{
+							//buf[readBytes] = '\0'; // padding with end of string symbol
 					// Check if the receive is the octo-leg
-					if (strlen(buf)==(filesize/8+8)){
+						if (strlen(buf)==(filesize/8+8)){
 							char order[100];
 							strncpy(order,buf,8);
+							order[8]='\0';
 							for (int i=0; i<9;i++){
-								if (sequence[i]==order){
-									strcpy(sub_buffer[i],buf);
+								printf("The sequence is %s and order is %s\n",sequence[i],order);
+								printf("Compare %d\ns",strcmp(sequence[i],order));
+								if (strcmp(sequence[i],order)==0){
+									strncpy(sub_buffer[i],buf+9,strlen(buf));
 									sprintf(ack,"ACK%d",i);
 									if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
 									{
@@ -221,10 +224,13 @@ int main(void)
 								}
 							}
 							fsize+=strlen(buf)-8;
-					}
+						}
 
+					}
+					
 					if (fsize==filesize){
 						//merge all sequence
+						quit=1;
 							for (int i=0; i<9;i++){
 								strcat(total_receive,sub_buffer[i]);
 							}
