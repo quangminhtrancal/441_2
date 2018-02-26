@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
   {
 
 		int quit = 0;
-while (!quit)
-{
+//while (!quit)
+//{
 		// ------------TCP to sdk for FILE--------------------------
 /* Address initialization */
 	struct sockaddr_in server1;
@@ -232,7 +232,7 @@ while (!quit)
 					int size8=0;
 					int mod8=0;
 					int index[8];
-					char sub_buffer[9][10000];
+					char sub_buffer[8][10000];
 					memset(&replaced_buffer, 0, sizeof(replaced_buffer));
 
 					memset(&sub_buffer, 0, sizeof(sub_buffer));
@@ -255,19 +255,21 @@ while (!quit)
 					int ACK_receive[9][1];
 					memset(&ACK_receive, 0, sizeof(ACK_receive)); // Set to zero meaning that there is no receiving of any ACK yet
 					int count_ACK=0; // Variable to check the number of ACK received from Client
-
-					if (file_size > 8888) {
-						// divide to smaller two octoput
-					}
-					else if (file_size <= 8888){
-						size8=file_size/8;
-						mod8=file_size % 8; 
+					int remaining_size=file_size;
+					int start=0;
+		while(remaining_size>0)
+		{
+					memset(&sub_buffer, 0, sizeof(sub_buffer));
+					//using index and sub_buffer to send
+					if (remaining_size > 8888) {
+						// divide to smaller octoputs
+						int size1=8888;
+						size8=size1/8;
 						int count_leg=0;
-					
-						index[0]=size8;
+						index[0]=start+size8;
 						while(count_leg<8){
-							for (int j=0;j<strlen(replaced_buffer);j++){
-								sub_buffer[count_leg][j%size8]=replaced_buffer[j];
+							for (int j=start;j<strlen(replaced_buffer);j++){
+								sub_buffer[count_leg][j%size1]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
 								if(j==index[count_leg]-1){
 									char temp[10000];
 									strcpy(temp,sequence[count_leg]);
@@ -278,42 +280,79 @@ while (!quit)
 								}
 							}
 						}
-					}
-					for (int i=0; i<8; i++){
-						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
-					}	
-					//printf("Replaced buffer %s\n",replaced_buffer);
-					printf("FILE buffer %s\n",file_buffer);
-					strcpy(replaced_buffer,file_buffer);
-					// if there is remaining
-					if (mod8!=0){
-						for (int j=0;j<mod8;j++){
-							sub_buffer[8][j]=file_buffer[index[7]+j];
-							int dex=index[7]+j;
-							printf("J=%d , index=%d Before buf 8 %s %s\n",j,index[7],sub_buffer[8],&file_buffer[dex]);
+						for (int i=0; i<8; i++){
+							printf("For larger Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
 						}
-						
-						int j=0;						
-						for (j=mod8;j<size8;j++){
-							sub_buffer[8][j]=' ';
-						}
-						sub_buffer[8][size8]='\0';
-						printf("Before buf 8 %s\n",sub_buffer[8]);
-						char temp[10000];
-						strcpy(temp,sequence[8]);
-						strcat(temp,sub_buffer[8]);
-						strcpy(sub_buffer[8],temp);		
-						count_ACK=9;
+						remaining_size=remaining_size-size1;
+						start=index[7];
 					}
-					else count_ACK=8;
+					else if (remaining_size <= 8888 && remaining_size >8){
+						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
+						strcpy(replaced_buffer,file_buffer);
 
-					printf("Buffer 8 is %s\n",sub_buffer[8]);
-			int send=0; // Variable to check if all has been sent
+						size8=remaining_size/8;
+					
+						int count_leg=0;
+					
+						index[0]=start+size8;
+						while(count_leg<8){
+							for (int j=0;j<strlen(replaced_buffer);j++){
+								sub_buffer[count_leg][j%size8]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
+								if(j==index[count_leg]-1){
+									char temp[10000];
+									strcpy(temp,sequence[count_leg]);
+									strcat(temp,sub_buffer[count_leg]);
+									strcpy(sub_buffer[count_leg],temp);
+									count_leg+=1;
+									index[count_leg]=index[count_leg-1]+size8;
+								}
+							}
+						}
+						for (int i=0; i<8; i++){
+						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
+						}
+						remaining_size=remaining_size-size8*8;
+						start=index[7];
+
+					}
+					else{  // remaining size <8
+
+						printf("LESS THAN 8 %d\n",remaining_size);
+					//printf("Replaced buffer %s\n",replaced_buffer);
+					//printf("FILE buffer %s\n",file_buffer);
+						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
+						strcpy(replaced_buffer,file_buffer);
+					// if there is remaining
+							for (int j=0;j<remaining_size;j++){
+								sub_buffer[j][0]=replaced_buffer[start+j];
+								char temp[10000];
+								strcpy(temp,sequence[j]);
+								strcat(temp,sub_buffer[j]);
+								strcpy(sub_buffer[j],temp);
+							}
+							int j=0;						
+							for (j=remaining_size;j<8;j++){
+								sub_buffer[j][0]=' ';
+								char temp[10000];
+								strcpy(temp,sequence[j]);
+								strcat(temp,sub_buffer[j]);
+								strcpy(sub_buffer[j],temp);
+							}
+
+									for (int i=0; i<8; i++){
+						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
+						}	
+						remaining_size=0;
+					}
+					count_ACK=8;
+
+			//int send=0; // Variable to check if all has been sent
 					/// Follow pseudocode from assignment help
-			while(send==0){
+			//while(send==0){
 				//for (int i=0; i<9;i++){
+				int num=0;
 				int send_index=0;
-				while (send_index<9){
+				while (send_index<8){
 					if(sendto(s,sub_buffer[send_index],strlen(sub_buffer[send_index]),0, client, len)<0){
 						printf("error in sending the leg\n");
 						exit(1);
@@ -339,20 +378,22 @@ while (!quit)
 					else if (pid1 == 0) {
 						// we are now inside the child process for the 
 						// Set timer
+						/*
 						char notification[100];
 						printf("Timer is ON\n");
 						sprintf(notification,"Start timer");
 						write(fd1[1], notification, strlen(notification)+1);
 						sleep(TIME_OUT);
-
-						read(fd1[0], notification, 100);
+						read(fd1[0], notification, 1);
+						printf("After time out 0\n");
+						int check=0;
 						if (strncmp(notification,"SENT",4)==0){
 							close(fd1[0]);	
 							close(fd1[1]);
+							check=1;
 							exit(0);
 						}
-						else{
-
+						if (check==0){
          					close(fd1[0]);  // Close reading end of first pipe
 						 	sprintf(notification,"TIMEOUT");
 				        	write(fd1[1], notification, strlen(notification)+1);
@@ -360,6 +401,29 @@ while (!quit)
 				        	close(fd1[1]);
 							exit(0);
 						}
+						*/
+						if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
+							{
+								printf("Read error!\n");
+								quit = 1;
+							}
+							buf[readBytes] = '\0'; // padding with end of string symbol
+							printf(" Child process received: %s\n",buf);
+
+							if (strncmp(buf, "ACK", 3) == 0){
+								write(fd1[1], buf, strlen(buf)+1);
+								close(fd1[1]);
+								//close(fd1[0]); // close the reading								
+								exit(0);
+							} 
+							char message[1000];
+							read(fd1[0], message, 10);
+							close(fd1[1]);
+							if (strncmp(message, "OVER", 4) == 0){
+								
+								//close(fd1[0]); // close the reading								
+								exit(0);
+							}
 					}
 					else{
 						// This is parent process
@@ -380,6 +444,7 @@ while (!quit)
 						}
 						// check if the process ID is zero, this is child process
 						else if (pid2 == 0) {
+							/*
 							if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
 							{
 								printf("Read error!\n");
@@ -394,68 +459,111 @@ while (!quit)
 								close(fd2[0]); // close the reading								
 								exit(0);
 							} 
-							else if (strncmp(buf, "OVER", 4) == 0){
+							char message[1000];
+							read(fd2[0], message, 10);
+							if (strncmp(message, "OVER", 4) == 0){
 								close(fd2[1]);
 								close(fd2[0]); // close the reading								
 								exit(0);
 							}
-
-						}
-						else{
+							*/
+							char notification[100];
+							
+							//sprintf(notification,"Start timer");
+							//write(fd2[1], notification, strlen(notification)+1);
+							sleep(TIME_OUT);
+							//read(fd2[0], notification, 1);
+							close(fd2[0]);
+							printf("After time out 0\n");
+							/*
 							int check=0;
+							if (strncmp(notification,"SENT",4)==0){
+								//close(fd2[0]);	
+								
+								check=1;
+								exit(0);
+							}
+							if (check==0){
+							*/
+								//close(fd2[0]);  // Close reading end of first pipe
+								sprintf(notification,"TIMEOUT");
+								write(fd2[1], notification, strlen(notification)+1);
+								close(fd2[1]);
+								printf("TIMER GOES OFF!!!!\n");
+								
+								exit(0);
+							//}
+						}
+						// Parent process
+						else{ 
+							int check=0;
+							//int PACK=0;							
 							while (check==0){
 								printf("This is parent process\n"); 
-								char message1[100];
-								read(fd1[0], message1, 100);
-								printf("REcieve from timer: %s\n",message1);
-								if (strncmp(message1,"TIMEOUT",7)==0){
-									close(fd1[0]);
-									close(fd1[1]);
-									char temp[10]="OVER";
-									write(fd2[1], temp, strlen(temp)+1);
-									close(fd2[0]);
-									close(fd2[1]);
-									break;
-								}
-							//while(count_ACK!=0){
+
+							//Listening for the ACK
+								close(fd1[1]);
 								char message2[100];
 								char temp[10];
-								read(fd2[0], message2, 100);
+								read(fd1[0], message2, 10);
+								close(fd1[0]);
 								if (strlen(message2)>0) check=1;
 								printf("Receive ACK=%s\n",message2);
 								bzero(temp,sizeof(temp));	
 								strncpy(temp,message2+3,strlen(message2));
-								int num=atoi(temp);
+								num=atoi(temp);
+								
+								
+
+								// Listening for Timer
+								char message1[100];
+								read(fd2[0], message1, 10);
 								close(fd2[0]);
-								close(fd2[1]);
+								printf("REcieve from timer: %s\n",message1);
+								if (strncmp(message1,"TIMEOUT",7)==0){
+									
+									
+									char temp[10]="OVER";
+									write(fd1[1], temp, strlen(temp)+1);
+									//close(fd1[0]);
+									close(fd1[1]);
+									printf("Parent process timer goes off!\n");
+									if (check!=1) break;
+								}
 								
 								if (num<=9 && num >=0){
-										printf("Count ACK %d\n",count_ACK);							
 										count_ACK-=1;
+										printf("Num is %d Count ACK %d\n",num,count_ACK);
 										ACK_receive[num][0]=1;
 										sprintf(temp,"SENT");
-										write(fd1[1], temp, strlen(temp)+1);
-										send_index+=1;
-										close(fd1[0]);
-										close(fd1[1]);
+										write(fd2[1], temp, strlen(temp)+1);
+										close(fd2[1]);
+										send_index+=1;// Check number of octo-leg has been sent
+										//close(fd2[0]);
+										//close(fd2[1]);
+										check=1;
+										break;
 								}
+								/*
 								if (count_ACK==0) {
 									check=1;
 									printf("int count_ACK=0\n");
 									break;
-								}
+								}*/
 							}
 							if (count_ACK==0) {
-								send=1;
+								//send=1;
 								kill(pid1,SIGKILL);
 								kill(pid2,SIGKILL);
 								printf(" killing subsequent\n");
 								break;
 							}
-						}
-					}
-				}
-			}
+						} // End of parent process 2
+					} // End of parent process 1
+				}// send index
+			//} // send
+			printf("Current remaining size is %d\n",remaining_size);
+	} // For confirming sending done  by using remaining size
 			printf("SEND DONE\n");
 					// Reset to zero
 			for (int i=0; i<9;i++){
@@ -465,7 +573,7 @@ while (!quit)
     close(s);
 	//sleep(15);
     
-  	}
+  //	} // main While loop
   	return 0;		
   }
 

@@ -33,8 +33,8 @@
 
 int main(void)
   {
-while(1)
-{
+//while(1)
+//{
     // TCP -------------------- for getting file information
     /* Address initialization */
 	struct sockaddr_in server1;
@@ -195,83 +195,104 @@ while(1)
 		printf("sendto failed\n");
 		return 1;
 	}
-
-    while(!quit)
+	int remaining=0;
+	int checklast=0;
+    while(fsize<filesize)
       {
-					if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
+		  int count_ACK=0;
+		  while(count_ACK<8){
+			memset(&buf, 0, sizeof(buf));
+			if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
 						{
 							printf("Read error!\n");
 							quit = 1;
 						}
-					else{
-							//buf[readBytes] = '\0'; // padding with end of string symbol
+			else{
+							buf[readBytes] = '\0'; // padding with end of string symbol
 					// Check if the receive is the octo-leg
-						if (strlen(buf)==(filesize/8+8)){
+							if (strlen(buf)<=10) checklast=1;
 							char order[100];
 							strncpy(order,buf,8);
 							order[8]='\0';
-							for (int i=0; i<9;i++){
+							for (int i=0; i<8;i++){
 								//printf("The sequence is %s and order is %s\n",sequence[i],order);
 								//printf("Compare %d\ns",strcmp(sequence[i],order));
 								if (strcmp(sequence[i],order)==0){
-									if(i==8){										
-										int end=8+filesize%8;
-										strncpy(sub_buffer[i],buf+8,end);
-										printf("i=%d %s",i,sub_buffer[i]);
-										sub_buffer[i][filesize%8]='\0';
-										fsize+=filesize%8;
-										printf("File size is %d\n",fsize);
-									}
-									else {
-										strncpy(sub_buffer[i],buf+8,strlen(buf));
-										fsize+=strlen(sub_buffer[i]);
-									}
-									sprintf(ack,"ACK%d",i);
-									if(i != 5){
-										if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
-											{
-												printf("sendto failed\n");
-												return 1;
-											}
-											memset(&ack, 0, sizeof(ack));
-										break;
+
+									printf("Checklast %d\n",checklast);
+									if(checklast==1)
+									{
+										
+										strncpy(sub_buffer[i],buf+8,9);
+										if (fsize<filesize){
+											strcat(total_receive,sub_buffer[i]);
+											fsize+=1;
+										}
+										
+										//printf("File size is %d and buf=%s",fsize,sub_buffer[i]);
 									}
 									else{
-										break;
+										
+										
+
+										
+										strncpy(sub_buffer[i],buf+8,strlen(buf));
+										fsize+=strlen(sub_buffer[i]);
+										//remaining=filesize-fsize;
+										strcat(total_receive,sub_buffer[i]);
+
 									}
+
+									
+									//printf("The buffer[%d] is %s\n",i,sub_buffer[i]);
+									if(i!=5){
+										sprintf(ack,"ACK%d",i);
+										count_ACK+=1;
+									}
+									
+
+									
+									
+		   						    memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
+							
+									if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
+										{
+											printf("sendto failed\n");
+											return 1;
+										}
+									memset(&ack, 0, sizeof(ack));
+									break;
+							
 								}
 							}
 							
-							printf("File size is %d\n",fsize);
-						}
+							printf("First batch File size is %d\n",fsize);
+						//}
 
 					}
-					
-					if (fsize==filesize){
-						//merge all sequence
-						quit=1;
-							for (int i=0; i<9;i++){
-								strcat(total_receive,sub_buffer[i]);
-							}
+		  }// end of count ACK
+		  memset(&sub_buffer, 0, sizeof(sub_buffer));
+
+	  }	
+
 						FILE *f;
 						remove(filename);
-						f = fopen(filename, "a");
+						f = fopen(filename, "w");
 						size_t file_size=ftell(f);
-						if (file_size < filesize) {
+						//if (file_size < filesize) {
 							
 							fprintf(f, "%s", total_receive);
-						}
+						//}
 						fclose(f);
 
 						printf("From server: \"%s\"\n\n", total_receive);
 						printf("Done for file receiving\n");
-     				}
-			}
+		
 
 			//printf("The file list from server is %s\n",&savefilelist);
 		close(s);  // UDP
 		//sleep(65);
-	}
+	//} main while loop
 
 	
     
