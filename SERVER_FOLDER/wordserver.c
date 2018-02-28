@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
 						f = fopen(note, "wba");
 						fprintf(f, "%s", buf);
 						fclose(f);
-						printf("Chile 1 done\n");
+					
 						/*
 						if (readBytes>3){
 
@@ -461,7 +461,7 @@ int main(int argc, char *argv[])
 									//printf("size of allocated buffer: \n%d\n",sizeof(buff)); 
 									// Read it all in one operation
 										read_size = fread(buff, 1, sizeof(buff), file);
-									printf("buffer in timer before%s \n",buff);	
+									printf("Buffer in timer before %s \n",buff);	
 								}
 							fclose(file);	
 
@@ -472,7 +472,7 @@ int main(int argc, char *argv[])
 								f = fopen(note, "wba");
 								fseek(f,0,SEEK_END);
 								size_t file_size=ftell(f);
-								printf("Timer child file size before %d\n",file_size);
+								//printf("Timer child file size before %d\n",file_size);
 								fprintf(f, "%s", notification);
 								printf("  TIMER GOES OFF!!!!OMG\n");
 								fclose(f);
@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 									//printf("size of allocated buffer: \n%d\n",sizeof(buff)); 
 									// Read it all in one operation
 										read_size = fread(buff, 1, sizeof(buff), file);
-									printf("buffer in father %s \n",buff);	
+									printf("Buffer in father %s \n",buff);	
 								}
 								fclose(file);		
 								
@@ -522,7 +522,7 @@ int main(int argc, char *argv[])
 								if(strncmp(buff, "ACK", 3) == 0)
 								{
 									check=1;
-									printf("PArent Receive ACK=%s\n",buff);
+									printf("Parent receive ACK=%s\n",buff);
 									char temp[10];
 									bzero(temp,sizeof(temp));	
 									strncpy(temp,buff+3,strlen(buff));
@@ -534,7 +534,7 @@ int main(int argc, char *argv[])
 								}
 								else if (strncmp(buff, "TIMEOUT", 7) == 0)
 								{
-									printf("Parent process timer goes off---------- %d\n", check);
+									printf("Parent process timer goes off---------\n");
 									kill(pid1,SIGKILL);
 									kill(pid2,SIGKILL);
 									printf("killing subsequent\n");

@@ -199,11 +199,14 @@ int main(void)
 	int remaining=0;
 	int checklast=0;
 	int test=0;
+	memset(&ack_recv, 0, sizeof(ack_recv));// make all acknowledgement receivement to zero
     while(fsize<filesize)
       {
 		  int count_ACK=0;
 		  while(count_ACK<8){
 			memset(&buf, 0, sizeof(buf));
+			//memset(&ack_recv, 0, sizeof(ack_recv));
+			
 			if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
 						{
 							printf("Read error!\n");
@@ -219,64 +222,78 @@ int main(void)
 							for (int i=0; i<8;i++){
 								//printf("The sequence is %s and order is %s\n",sequence[i],order);
 								//printf("Compare %d\ns",strcmp(sequence[i],order));
+								
+
 								if (strcmp(sequence[i],order)==0){
+											printf("%d ACK=%d File size is %d and buf=%s\n",i,ack_recv[i],fsize,sub_buffer[i]);
 
-									printf("Checklast %d\n",checklast);
-									if(ack_recv[i]==0){
-										if(checklast==1)
-										{
-											
-											strncpy(sub_buffer[i],buf+8,9);
-											if (fsize<filesize){
-												strcat(total_receive,sub_buffer[i]);
-												fsize+=1;
-												ack_recv[i]=1;
+											printf("Checklast %d\n",checklast);
+											if(ack_recv[i]==0){ // Haven't received before
+												if(checklast==1)
+												{
+													
+													strncpy(sub_buffer[i],buf+8,9);
+													if (fsize<filesize){
+														strcat(total_receive,sub_buffer[i]);
+														fsize+=1;
+														ack_recv[i]=1;
+														//printf("File size is %d and buf=%s\n",fsize,sub_buffer[i]);
+													}
+													//checklast=0;
+
+												}
+												else{
+													
+													strncpy(sub_buffer[i],buf+8,strlen(buf));
+													fsize+=strlen(sub_buffer[i]);
+													//remaining=filesize-fsize;
+													strcat(total_receive,sub_buffer[i]);
+													ack_recv[i]=1;
+																									}
 											}
-											checklast=0;
-											//printf("File size is %d and buf=%s",fsize,sub_buffer[i]);
-										}
-										else{
-											
-											strncpy(sub_buffer[i],buf+8,strlen(buf));
-											fsize+=strlen(sub_buffer[i]);
-											//remaining=filesize-fsize;
-											strcat(total_receive,sub_buffer[i]);
-											ack_recv[i]=1;
-										}
-									}
-									//printf("The buffer[%d] is %s\n",i,sub_buffer[i]);
-									if(i!=5 || test ==1){
-										sprintf(ack,"ACK%d",i);
-										ack[strlen(ack)]='\0';
-										count_ACK+=1;
-										if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
-										{
-											printf("sendto failed\n");
-											return 1;
-										}
-										memset(&ack, 0, sizeof(ack));
-										test=0;
-									}
-									if (i==5 && test ==0) {
-										test=1;
-									}
-									break;
+											//printf("The buffer[%d] is %s\n",i,sub_buffer[i]);
+											if(i!=5 || test ==1){
+												sprintf(ack,"ACK%d",i);
+												ack[strlen(ack)]='\0';
+												count_ACK+=1;
+												printf("Current ACK %d\n",count_ACK);
+												printf("--------------------\n");
+												if (count_ACK==8) {
+													if (checklast==0 && fsize!= filesize){
+														count_ACK=0;
+														memset(&ack_recv, 0, sizeof(ack_recv));
+													}
+												}
+												if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
+												{
+													printf("sendto failed\n");
+													return 1;
+												}
+												memset(&ack, 0, sizeof(ack));
+												test=0;
+											}
+											if (i==5 && test ==0) {
+												test=1;
+											}
+											break;
 
-		   						    memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
+											memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
 							
 									
 							
 								} // if of comparing the order
 							}// for loop to check the sequence
 							
-							printf("First batch File size is %d\n",fsize);
+							//if(fsize==filesize) break;
 						//}
 
 					}
 		  }// end of count ACK
+		  printf("Current file size is %d want %d\n",fsize,filesize);
+		  if(fsize==filesize) break;
 		  memset(&sub_buffer, 0, sizeof(sub_buffer));
 
-	  }	
+	  }	// End of checking file size
 
 						FILE *f;
 						remove(filename);
