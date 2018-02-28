@@ -248,7 +248,8 @@ int main(int argc, char *argv[])
 					// Break into smaller chunks
 					strcpy(replaced_buffer,file_buffer);
 
-					//printf("Replace buffer %s\n", file_buffer);
+					//printf("FILE CONTENT %s\n", file_buffer);
+					printf("--------------------------------------\n");
 					char sequence[9][100]={"10000000","01000000","00100000","00010000"
 											,"00001000","00000100","00000010","00000001","11111111"};
 					// Array to set the bit to 1 if the ACK of that sequence has been received for double checking
@@ -263,13 +264,15 @@ int main(int argc, char *argv[])
 					//using index and sub_buffer to send
 					if (remaining_size > 8888) {
 						// divide to smaller octoputs
+						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
+						strcpy(replaced_buffer,file_buffer);
 						int size1=8888;
 						size8=size1/8;
 						int count_leg=0;
 						index[0]=start+size8;
 						while(count_leg<8){
 							for (int j=start;j<strlen(replaced_buffer);j++){
-								sub_buffer[count_leg][j%size1]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
+								sub_buffer[count_leg][j%size8]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
 								if(j==index[count_leg]-1){
 									char temp[10000];
 									strcpy(temp,sequence[count_leg]);

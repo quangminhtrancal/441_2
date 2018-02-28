@@ -180,7 +180,7 @@ int main(void)
 		char sequence[9][100]={"10000000","01000000","00100000","00010000"
 											,"00001000","00000100","00000010","00000001","11111111"};
 		char sub_buffer[9][10000];
-		char total_receive[100000];
+		char total_receive[1000000];
 		memset(&sub_buffer, 0, sizeof(sub_buffer));
 		memset(&total_receive, 0, sizeof(total_receive));
 		check=0;
@@ -225,7 +225,7 @@ int main(void)
 								
 
 								if (strcmp(sequence[i],order)==0){
-											printf("%d ACK=%d File size is %d and buf=%s\n",i,ack_recv[i],fsize,sub_buffer[i]);
+											printf("%d ACK=%d File size is %d\n",i,ack_recv[i],fsize);
 
 											printf("Checklast %d\n",checklast);
 											if(ack_recv[i]==0){ // Haven't received before
