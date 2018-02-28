@@ -247,6 +247,7 @@ int main(void)
 									//printf("The buffer[%d] is %s\n",i,sub_buffer[i]);
 									if(i!=5 || test ==1){
 										sprintf(ack,"ACK%d",i);
+										ack[strlen(ack)]='\0';
 										count_ACK+=1;
 										if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
 										{
@@ -254,6 +255,7 @@ int main(void)
 											return 1;
 										}
 										memset(&ack, 0, sizeof(ack));
+										test=0;
 									}
 									if (i==5 && test ==0) {
 										test=1;
