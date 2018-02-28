@@ -186,6 +186,7 @@ int main(void)
 		check=0;
 		int fsize=0;
 		char ack[1000];
+		int ack_recv[8]={0,0,0,0,0,0,0,0};
 
 	printf("Enter START command: ");
 					scanf("%s", buf);
@@ -197,6 +198,7 @@ int main(void)
 	}
 	int remaining=0;
 	int checklast=0;
+	int test=0;
     while(fsize<filesize)
       {
 		  int count_ACK=0;
@@ -220,51 +222,50 @@ int main(void)
 								if (strcmp(sequence[i],order)==0){
 
 									printf("Checklast %d\n",checklast);
-									if(checklast==1)
-									{
-										
-										strncpy(sub_buffer[i],buf+8,9);
-										if (fsize<filesize){
-											strcat(total_receive,sub_buffer[i]);
-											fsize+=1;
+									if(ack_recv[i]==0){
+										if(checklast==1)
+										{
+											
+											strncpy(sub_buffer[i],buf+8,9);
+											if (fsize<filesize){
+												strcat(total_receive,sub_buffer[i]);
+												fsize+=1;
+												ack_recv[i]=1;
+											}
+											checklast=0;
+											//printf("File size is %d and buf=%s",fsize,sub_buffer[i]);
 										}
-										
-										//printf("File size is %d and buf=%s",fsize,sub_buffer[i]);
+										else{
+											
+											strncpy(sub_buffer[i],buf+8,strlen(buf));
+											fsize+=strlen(sub_buffer[i]);
+											//remaining=filesize-fsize;
+											strcat(total_receive,sub_buffer[i]);
+											ack_recv[i]=1;
+										}
 									}
-									else{
-										
-										
-
-										
-										strncpy(sub_buffer[i],buf+8,strlen(buf));
-										fsize+=strlen(sub_buffer[i]);
-										//remaining=filesize-fsize;
-										strcat(total_receive,sub_buffer[i]);
-
-									}
-
-									
 									//printf("The buffer[%d] is %s\n",i,sub_buffer[i]);
-									if(i!=5){
+									if(i!=5 || test ==1){
 										sprintf(ack,"ACK%d",i);
 										count_ACK+=1;
-									}
-									
-
-									
-									
-		   						    memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
-							
-									if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
+										if (sendto(s, ack, strlen(ack), 0, server, sizeof(si_server)) == -1)
 										{
 											printf("sendto failed\n");
 											return 1;
 										}
-									memset(&ack, 0, sizeof(ack));
+										memset(&ack, 0, sizeof(ack));
+									}
+									if (i==5 && test ==0) {
+										test=1;
+									}
 									break;
+
+		   						    memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
 							
-								}
-							}
+									
+							
+								} // if of comparing the order
+							}// for loop to check the sequence
 							
 							printf("First batch File size is %d\n",fsize);
 						//}

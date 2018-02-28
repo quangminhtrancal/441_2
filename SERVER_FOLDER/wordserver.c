@@ -36,7 +36,7 @@
 #define MAX_VERBS 6
 #define MAX_DUMDUMS 3
 #define MAX_LENGTH 10
-#define TIME_OUT 10
+#define TIME_OUT 2
 /* Global variable */
 int childsockfd;
 
@@ -345,19 +345,16 @@ int main(int argc, char *argv[])
 						remaining_size=0;
 					}
 					count_ACK=8;
-
-			//int send=0; // Variable to check if all has been sent
-					/// Follow pseudocode from assignment help
-			//while(send==0){
-				//for (int i=0; i<9;i++){
-				int num=0;
+			/////// ----------------------------- SENDING ONE BY ONE LEG----------
+				int num=-1;
 				int send_index=0;
+				int check=0;
 				while (send_index<8){
 					if(sendto(s,sub_buffer[send_index],strlen(sub_buffer[send_index]),0, client, len)<0){
 						printf("error in sending the leg\n");
 						exit(1);
 					}
-					//***********************************Create a pipe1 for timer
+					//***********************************Create a pipe1 for ACK
 					int fd1[2];  // Used to store two ends of first pipe; 0 for read and 1 for writing
 					if (pipe(fd1)==-1)
 					{
@@ -376,59 +373,26 @@ int main(int argc, char *argv[])
 					}
 					// check if the process ID is zero
 					else if (pid1 == 0) {
-						// we are now inside the child process for the 
-						// Set timer
-						/*
-						char notification[100];
-						printf("Timer is ON\n");
-						sprintf(notification,"Start timer");
-						write(fd1[1], notification, strlen(notification)+1);
-						sleep(TIME_OUT);
-						read(fd1[0], notification, 1);
-						printf("After time out 0\n");
-						int check=0;
-						if (strncmp(notification,"SENT",4)==0){
-							close(fd1[0]);	
-							close(fd1[1]);
-							check=1;
-							exit(0);
-						}
-						if (check==0){
-         					close(fd1[0]);  // Close reading end of first pipe
-						 	sprintf(notification,"TIMEOUT");
-				        	write(fd1[1], notification, strlen(notification)+1);
-							printf("TIMER GOES OFF!!!!\n");
-				        	close(fd1[1]);
-							exit(0);
-						}
-						*/
+						close(fd1[0]);
+						sleep(1);
 						if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
 							{
 								printf("Read error!\n");
 								quit = 1;
 							}
-							buf[readBytes] = '\0'; // padding with end of string symbol
-							printf(" Child process received: %s\n",buf);
+						//buf[readBytes] = '\0'; // padding with end of string symbol
+							printf(" Child process received: %s %d\n",buf,readBytes);
 
 							if (strncmp(buf, "ACK", 3) == 0){
 								write(fd1[1], buf, strlen(buf)+1);
 								close(fd1[1]);
-								//close(fd1[0]); // close the reading								
+							} 							
 								exit(0);
-							} 
-							char message[1000];
-							read(fd1[0], message, 10);
-							close(fd1[1]);
-							if (strncmp(message, "OVER", 4) == 0){
-								
-								//close(fd1[0]); // close the reading								
-								exit(0);
-							}
 					}
 					else{
 						// This is parent process
 
-						// ********************************Create a pipe 2 for ACK
+						// ********************************Create a pipe 2 for timer
 						
 						int fd2[2];
 						if (pipe(fd2)==-1)
@@ -444,62 +408,26 @@ int main(int argc, char *argv[])
 						}
 						// check if the process ID is zero, this is child process
 						else if (pid2 == 0) {
-							/*
-							if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
-							{
-								printf("Read error!\n");
-								quit = 1;
-							}
-							buf[readBytes] = '\0'; // padding with end of string symbol
-							printf(" Child process received: %s\n",buf);
-
-							if (strncmp(buf, "ACK", 3) == 0){
-								write(fd2[1], buf, strlen(buf)+1);
-								close(fd2[1]);
-								close(fd2[0]); // close the reading								
-								exit(0);
-							} 
-							char message[1000];
-							read(fd2[0], message, 10);
-							if (strncmp(message, "OVER", 4) == 0){
-								close(fd2[1]);
-								close(fd2[0]); // close the reading								
-								exit(0);
-							}
-							*/
+							close(fd2[0]);
 							char notification[100];
-							
-							//sprintf(notification,"Start timer");
-							//write(fd2[1], notification, strlen(notification)+1);
 							sleep(TIME_OUT);
 							//read(fd2[0], notification, 1);
-							close(fd2[0]);
-							printf("After time out 0\n");
-							/*
-							int check=0;
-							if (strncmp(notification,"SENT",4)==0){
-								//close(fd2[0]);	
-								
-								check=1;
-								exit(0);
-							}
-							if (check==0){
-							*/
+							
+							//printf("After time out 0\n");
 								//close(fd2[0]);  // Close reading end of first pipe
-								sprintf(notification,"TIMEOUT");
-								write(fd2[1], notification, strlen(notification)+1);
-								close(fd2[1]);
-								printf("TIMER GOES OFF!!!!\n");
+							sprintf(notification,"TIMEOUT");
+							write(fd2[1], notification, strlen(notification)+1);
+							close(fd2[1]);
+							printf("  TIMER GOES OFF!!!!\n");
 								
-								exit(0);
-							//}
+							exit(0);
 						}
 						// Parent process
 						else{ 
-							int check=0;
+							check=0;
 							//int PACK=0;							
 							while (check==0){
-								printf("This is parent process\n"); 
+								printf("This is parent process %d\n",send_index); 
 
 							//Listening for the ACK
 								close(fd1[1]);
@@ -507,60 +435,47 @@ int main(int argc, char *argv[])
 								char temp[10];
 								read(fd1[0], message2, 10);
 								close(fd1[0]);
-								if (strlen(message2)>0) check=1;
+								if (strlen(message2)>0) check=1;   // If having ACK then check is confirmed
 								printf("Receive ACK=%s\n",message2);
 								bzero(temp,sizeof(temp));	
 								strncpy(temp,message2+3,strlen(message2));
-								num=atoi(temp);
-								
-								
-
+								if (check==1) {
+									num=atoi(temp);
+									count_ACK-=1;
+									send_index+=1;
+									//check=1;
+									num=-1;
+									//break;
+								}
 								// Listening for Timer
-								char message1[100];
-								read(fd2[0], message1, 10);
-								close(fd2[0]);
-								printf("REcieve from timer: %s\n",message1);
-								if (strncmp(message1,"TIMEOUT",7)==0){
+									char message1[100];
+									printf("In parent timer\n");
+									read(fd2[0], message1, 10);
+									close(fd2[0]);
+									close(fd2[1]);
+									printf("REcieve from timer: %s\n",message1);
+									if (strncmp(message1,"TIMEOUT",7)==0){
+										char temp[10]="OVER";									
+										printf("Parent process timer goes off---------- %d\n", check);																				check=0;
+										//printf("hi hi----------------\n");
+										if (check!=1) {
+											check=1;
+											//break;
+										}
+
+
+									}
 									
-									
-									char temp[10]="OVER";
-									write(fd1[1], temp, strlen(temp)+1);
-									//close(fd1[0]);
-									close(fd1[1]);
-									printf("Parent process timer goes off!\n");
-									if (check!=1) break;
-								}
-								
-								if (num<=9 && num >=0){
-										count_ACK-=1;
-										printf("Num is %d Count ACK %d\n",num,count_ACK);
-										ACK_receive[num][0]=1;
-										sprintf(temp,"SENT");
-										write(fd2[1], temp, strlen(temp)+1);
-										close(fd2[1]);
-										send_index+=1;// Check number of octo-leg has been sent
-										//close(fd2[0]);
-										//close(fd2[1]);
-										check=1;
-										break;
-								}
-								/*
-								if (count_ACK==0) {
-									check=1;
-									printf("int count_ACK=0\n");
-									break;
-								}*/
-							}
-							if (count_ACK==0) {
-								//send=1;
-								kill(pid1,SIGKILL);
-								kill(pid2,SIGKILL);
-								printf(" killing subsequent\n");
-								break;
+							} // while check loop for checking ACK and timer
+							printf("Near to the next while loop %d\n",check);
+							if (check==1) {
+								//check=1;
+								printf("Send index= %d\n",send_index);
 							}
 						} // End of parent process 2
 					} // End of parent process 1
-				}// send index
+
+				}// send index while loop
 			//} // send
 			printf("Current remaining size is %d\n",remaining_size);
 	} // For confirming sending done  by using remaining size
