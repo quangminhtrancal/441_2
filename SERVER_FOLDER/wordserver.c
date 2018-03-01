@@ -261,40 +261,58 @@ int main(int argc, char *argv[])
 		while(remaining_size>0)
 		{
 					memset(&sub_buffer, 0, sizeof(sub_buffer));
+					int p=0;
 					//using index and sub_buffer to send
-					if (remaining_size > 8888) {
+					//if (remaining_size > 8888) {
+					if (remaining_size > 8) {
 						// divide to smaller octoputs
 						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
 						strcpy(replaced_buffer,file_buffer);
-						int size1=8888;
-						size8=size1/8;
+						if (remaining_size>8888){
+							int size1=8888;
+							size8=size1/8;
+						}
+						else{
+							size8=remaining_size/8;
+							char check_buf[100000];
+							strncpy(check_buf,replaced_buffer+start,strlen(replaced_buffer));
+							//printf("----- The current remaining is--------: \n%s\n",check_buf);
+							p=1;
+						}
+						memset(&sub_buffer, 0, sizeof(sub_buffer));
+
 						int count_leg=0;
 						index[0]=start+size8;
 						while(count_leg<8){
-							for (int j=start;j<strlen(replaced_buffer);j++){
-								sub_buffer[count_leg][j%size8]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
-								if(j==index[count_leg]-1){
+							//for (int j=start;j<strlen(replaced_buffer);j++){
+								//sub_buffer[count_leg][j%size8]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
+								//if(j==index[count_leg]-1){
+									if (count_leg==0) strncpy(sub_buffer[count_leg],replaced_buffer+start,size8);
+									else strncpy(sub_buffer[count_leg],replaced_buffer+index[count_leg-1],size8);
 									char temp[10000];
+									//sub_buffer[count_leg][j+1]='\0';
+									//if(p==1) printf("%s------------\n",sub_buffer[count_leg]);
 									strcpy(temp,sequence[count_leg]);
 									strcat(temp,sub_buffer[count_leg]);
 									strcpy(sub_buffer[count_leg],temp);
+									//sub_buffer[count_leg][j+9]='\0';
 									count_leg+=1;
 									index[count_leg]=index[count_leg-1]+size8;
-								}
-							}
+								//}
+							//}
 						}
 						for (int i=0; i<8; i++){
-							printf("For larger Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
+							printf("For larger Buffer %d, index=%d  is \n%s\n",i,index[i],sub_buffer[i]);
 						}
-						remaining_size=remaining_size-size1;
+						remaining_size=remaining_size-size8*8;
 						start=index[7];
 					}
+					/*
 					else if (remaining_size <= 8888 && remaining_size >8){
 						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
 						strcpy(replaced_buffer,file_buffer);
 
 						size8=remaining_size/8;
-					
 						int count_leg=0;
 					
 						index[0]=start+size8;
@@ -316,8 +334,10 @@ int main(int argc, char *argv[])
 						}
 						remaining_size=remaining_size-size8*8;
 						start=index[7];
+						
 
 					}
+					*/
 					else{  // remaining size <8
 
 						printf("LESS THAN 8 %d\n",remaining_size);

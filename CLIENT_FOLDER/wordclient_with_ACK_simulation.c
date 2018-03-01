@@ -25,8 +25,8 @@
 
 /* Hardcode the IP address of the server (local or remote) */
 /* #define SERVER_IP "127.0.0.1"   /* loopback interface */
-//#define SERVER_IP "136.159.16.7"  /* rsx1.cpsc.ucalgary.ca */
-#define SERVER_IP "127.0.0.1"  /* rsx1.cpsc.ucalgary.ca */
+#define SERVER_IP "136.159.16.7"  /* rsx1.cpsc.ucalgary.ca */
+//#define SERVER_IP "127.0.0.1"  /* rsx1.cpsc.ucalgary.ca */
 
 /* Edit as needed to match port of server */
 #define SERVER_PORT 8001
@@ -42,8 +42,8 @@ int main(void)
 	memset(&server1, 0, sizeof(server1));
 	server1.sin_family = AF_INET;
 	server1.sin_port = htons(MYPORTNUM);
-	server1.sin_addr.s_addr = htonl(INADDR_ANY);  // For local host
-	//server1.sin_addr.s_addr = inet_addr(SERVER_IP);  // For IP
+	//server1.sin_addr.s_addr = htonl(INADDR_ANY);
+	server1.sin_addr.s_addr = inet_addr(SERVER_IP);
 
 	/* Create the listening socket */
 	int sock;
@@ -253,7 +253,7 @@ int main(void)
 																									}
 											}
 											//printf("The buffer[%d] is %s\n",i,sub_buffer[i]);
-											//if(i!=5 || test ==1){
+											if(i!=5 || test ==1){
 												sprintf(ack,"ACK%d",i);
 												ack[strlen(ack)]='\0';
 												count_ACK+=1;
@@ -272,10 +272,10 @@ int main(void)
 												}
 												memset(&ack, 0, sizeof(ack));
 												test=0;
-											//}
-											//if (i==5 && test ==0) {
-											//	test=1;
-											//}
+											}
+											if (i==5 && test ==0) {
+												test=1;
+											}
 											break;
 
 											memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
@@ -306,7 +306,7 @@ int main(void)
 						//}
 						fclose(f);
 
-						//printf("From server: \"%s\"\n\n", total_receive);
+						printf("From server: \"%s\"\n\n", total_receive);
 						printf("Done for file receiving\n");
 		
 
