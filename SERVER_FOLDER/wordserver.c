@@ -1,12 +1,5 @@
-/* Simple program to demonstrate a UDP-based server.
- * Binds to a random port between 8000 and 8999.
- * Receives a message from the client.
- * If it receives a "noun" message, it sends a random noun back.
- * If it receives a "adj" message, it sends a random adjective back.
- * If it receives a "verb" message, it sends a random verb back.
- * If you send an unknown command, it sends a random insult back.
- * A "quit" message from client kills the server gracefully.
- *
+/* Server to transfer file
+ * written by Minh from the original source of wrodserver.c
  * Compile using "gcc -o wordserver wordserver.c"
  */
 
@@ -37,6 +30,7 @@
 #define MAX_DUMDUMS 3
 #define MAX_LENGTH 10
 #define TIME_OUT 1
+#define HUGE_NUMBER 500000
 /* Global variable */
 int childsockfd;
 
@@ -99,25 +93,26 @@ int main(int argc, char *argv[])
 			// check to receive FILE command
 //			int f=0;
 			char rcv_message[1024];
-//			while (f==0){
+
 					int count = recv(connected_sock, rcv_message, sizeof(rcv_message), 0);
 					printf("Received message is %s\n",rcv_message);
 					if (count < 0) {
 						printf("Error in recv()\n");
-					} 
+					}
 					else {
 						if(strncmp(rcv_message, "FILE", 4) == 0)
 						{
 
+							//	char filename[1024] = { "\n736.txt-736\r\n739.txt-739\r\n1KB.txt-1024\r\n2KB.txt-2048\r\n4KB.txt-4096\r\n8KB.txt-8192\r\n8888.txt-8888\r\n32KB.txt-32768\r\n256KB.txt-262144\r\n" };
+
 								char filename[1024] = { "\n736.txt-736\r\n739.txt-739\r\n1KB.txt-1024\r\n2KB.txt-2048\r\n4KB.txt-4096\r\n8KB.txt-8192\r\n8888.txt-8888\r\n32KB.txt-32768\r\n256KB.txt-262144\r\n" };
+
 								count = send(connected_sock, filename, sizeof(filename), 0);
 								if (count < 0) {
 									printf("Error in send()\n");
 								}
 						}
 				}
-	//		}
-
 					/* Receive data */
 		while (rcv_file_request == 0){
 
@@ -126,7 +121,7 @@ int main(int argc, char *argv[])
 					printf("Received message is %s\n",rcv_message);
 					if (count < 0) {
 						printf("Error in recv()\n");
-					} 
+					}
 					else {
 
 						if(strncmp(rcv_message, "736.txt", 7) == 0) {
@@ -149,11 +144,7 @@ int main(int argc, char *argv[])
 								}
 						}
 					}
-
 			if (rcv_file_request>0) {
-				
-
-
 				char message1[1024] = {"DONE\n"};
 				count = send(connected_sock, message1, sizeof(message1), 0);
 					if (count < 0) {
@@ -165,11 +156,8 @@ int main(int argc, char *argv[])
 			/* Close the socket */
 		close(lstn_sock);
 
-		
-
 		//----------- UDP ----------------------
-//	int parentsockfd;
-//	 int pid;
+
 	struct sockaddr_in si_server, si_client;
     struct sockaddr *server, *client;
     int s, i, len=sizeof(si_server);
@@ -202,7 +190,7 @@ int main(int argc, char *argv[])
 	return 1;
       }
 
-    
+
 	if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
 						{
 							printf("Read error!\n");
@@ -212,53 +200,96 @@ int main(int argc, char *argv[])
 	printf(" Server received: %s\n",buf);
 
 
-	//while (!quit)
-    //  {
+
 
 					// OPEN FILE and READ AND SEND
-					FILE *fp;
+
 						char file_buffer[1000000];
+                        char file_buffer1[1000000];
+                        char file_buffer2[1000000];
+                        char file_buffer3[1000000]; // for last part 6640
 						char replaced_buffer[1000000];
 
-						fp=fopen(filename,"r");
-						if(fp==NULL)
-							{
-								printf("file does not exist\n");
-							}
-						fseek(fp,0,SEEK_END);
-						size_t file_size=ftell(fp);
-						printf("The file size is %d\n", file_size);
 						// Size processing
 					int size8=0;
 					int mod8=0;
 					int index[8];
+                    int check_large=0;
 					char sub_buffer[8][10000];
 					memset(&replaced_buffer, 0, sizeof(replaced_buffer));
 
 					memset(&sub_buffer, 0, sizeof(sub_buffer));
-				
+
 						// Send information
-					fseek(fp,0,SEEK_SET);
-					if(fread(file_buffer,file_size,1,fp)<=0)
-							{
-								printf("unable to copy file into buffer\n");
-								exit(1);
-							}
+					char c;
+					FILE *fp;
+					fp = fopen(filename, "r");
+
+					int index1 = 0;
+					while (fscanf(fp, "%c", &c) != EOF) {
+							file_buffer[index1] = c;
+							index1++;
+					}
+						file_buffer[index1] = '\0';
+						int file_size = index1;
+                          printf("File %s size is %d\n",filename,file_size);
+						fclose(fp);
+
+                    // Split into two smaller char array for transfering the biggest file
+                    int half=file_size/2;
+                  if(strcmp(filename,"256KB.txt")==0){
+                      strncpy(file_buffer1,file_buffer,half);
+                      strncpy(file_buffer2,file_buffer+half,file_size-6640);
+                      strncpy(file_buffer3,file_buffer+255504,file_size);
+                      check_large=4;
+                      printf("buf1 %lu buf2 %lu buf3 %lu\n",strlen(file_buffer1),strlen(file_buffer2),strlen(file_buffer3) );
+                  }
+                  else{
+                      check_large=1;
+                  }
 
 					// Break into smaller chunks
-					strcpy(replaced_buffer,file_buffer);
+      while(check_large>0){
+
+
+
+          int remaining_size=0;
+          if(check_large==1){
+              strcpy(replaced_buffer,file_buffer);
+              remaining_size=file_size;
+              check_large=0;
+          }
+          else if(check_large==4){
+              printf("Sending first part of the biggest file\n %s\n",file_buffer1);
+              strcpy(replaced_buffer,file_buffer1);
+              remaining_size=half;
+              check_large=3;
+          }
+          else if(check_large==3){
+              printf("Sending second part of the biggest file\n %s\n",file_buffer1);
+              strcpy(replaced_buffer,file_buffer2);
+              remaining_size=half-6640;
+              check_large=2;
+          }
+          else if(check_large==2){
+            printf("Sending last part of the biggest file\n %s\n",file_buffer2);
+              strcpy(replaced_buffer,file_buffer3);
+              remaining_size=6640;
+              check_large=0;
+          }
+            printf("Start the party started %d\n",check_large);
 
 					//printf("FILE CONTENT %s\n", file_buffer);
 					printf("--------------------------------------\n");
-					char sequence[9][100]={"10000000","01000000","00100000","00010000"
-											,"00001000","00000100","00000010","00000001","11111111"};
+					char sequence[8][100]={"10000000","01000000","00100000","00010000"
+											,"00001000","00000100","00000010","00000001"};
 					// Array to set the bit to 1 if the ACK of that sequence has been received for double checking
-					int ACK_receive[9][1];
+					int ACK_receive[8][1];
 					memset(&ACK_receive, 0, sizeof(ACK_receive)); // Set to zero meaning that there is no receiving of any ACK yet
 					int count_ACK=0; // Variable to check the number of ACK received from Client
-					int remaining_size=file_size;
+
 					int start=0;
-		while(remaining_size>0)
+  while(remaining_size>0)
 		{
 					memset(&sub_buffer, 0, sizeof(sub_buffer));
 					int p=0;
@@ -266,8 +297,8 @@ int main(int argc, char *argv[])
 					//if (remaining_size > 8888) {
 					if (remaining_size > 8) {
 						// divide to smaller octoputs
-						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
-						strcpy(replaced_buffer,file_buffer);
+						//memset(&replaced_buffer, 0, sizeof(replaced_buffer));
+						//strcpy(replaced_buffer,file_buffer);
 						if (remaining_size>8888){
 							int size1=8888;
 							size8=size1/8;
@@ -302,42 +333,12 @@ int main(int argc, char *argv[])
 							//}
 						}
 						for (int i=0; i<8; i++){
-							printf("For larger Buffer %d, index=%d  is \n%s\n",i,index[i],sub_buffer[i]);
+//							printf("For larger Buffer %d, index=%d  is \n%s\n",i,index[i],sub_buffer[i]);
 						}
 						remaining_size=remaining_size-size8*8;
 						start=index[7];
 					}
-					/*
-					else if (remaining_size <= 8888 && remaining_size >8){
-						memset(&replaced_buffer, 0, sizeof(replaced_buffer));
-						strcpy(replaced_buffer,file_buffer);
 
-						size8=remaining_size/8;
-						int count_leg=0;
-					
-						index[0]=start+size8;
-						while(count_leg<8){
-							for (int j=0;j<strlen(replaced_buffer);j++){
-								sub_buffer[count_leg][j%size8]=replaced_buffer[j]; // Get each element in the buffer to put in the sub-buffer
-								if(j==index[count_leg]-1){
-									char temp[10000];
-									strcpy(temp,sequence[count_leg]);
-									strcat(temp,sub_buffer[count_leg]);
-									strcpy(sub_buffer[count_leg],temp);
-									count_leg+=1;
-									index[count_leg]=index[count_leg-1]+size8;
-								}
-							}
-						}
-						for (int i=0; i<8; i++){
-						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
-						}
-						remaining_size=remaining_size-size8*8;
-						start=index[7];
-						
-
-					}
-					*/
 					else{  // remaining size <8
 
 						printf("LESS THAN 8 %d\n",remaining_size);
@@ -353,7 +354,7 @@ int main(int argc, char *argv[])
 								strcat(temp,sub_buffer[j]);
 								strcpy(sub_buffer[j],temp);
 							}
-							int j=0;						
+							int j=0;
 							for (j=remaining_size;j<8;j++){
 								sub_buffer[j][0]=' ';
 								char temp[10000];
@@ -363,8 +364,8 @@ int main(int argc, char *argv[])
 							}
 
 									for (int i=0; i<8; i++){
-						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
-						}	
+//-						printf("Buffer %d, index=%d  is %s\n",i,index[i],sub_buffer[i]);
+						}
 						remaining_size=0;
 					}
 					count_ACK=8;
@@ -387,7 +388,7 @@ int main(int argc, char *argv[])
 					}
 
 					//Call fork() to create child1 process
-					
+
 					pid_t pid1;
 
 					pid1=fork();
@@ -399,7 +400,7 @@ int main(int argc, char *argv[])
 					else if (pid1 == 0) {
 						close(fd1[0]);
 						//sleep(1);
-						printf("I am here in ACK child\n");
+//-						printf("I am here in ACK child\n");
 
 							char notification[100]=" ";
 							char note[1024]="Notification.txt";
@@ -408,45 +409,29 @@ int main(int argc, char *argv[])
 							f = fopen(note, "wba");
 							fprintf(f, "%s", notification);
 							fclose(f);
-						
+
 						if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, client, &len))==-1)
 							{
 								printf("Read error!\n");
 								quit = 1;
 							}
 						buf[readBytes] = '\0'; // padding with end of string symbol
-						
-							printf(" Child process received: %s\n",buf);
-						
+
+//-							printf(" Child process received: %s\n",buf);
+
 						//remove(note);
 						f = fopen(note, "wba");
 						fprintf(f, "%s", buf);
 						fclose(f);
-					
-						/*
-						if (readBytes>3){
 
-							if (strncmp(buf, "ACK", 3) == 0){
-								write(fd1[1], buf, strlen(buf));
-								close(fd1[1]);
-							} 							
-						}
-						else{
-							printf("Child process, no ACK\n");
-							char message[100]="NO_ACK";
-							write(fd1[1], message, strlen(message));
-							close(fd1[1]);
-							
-						}
-						*/
-								exit(0);
-						
+						exit(0);
+
 					}
 					else{
 						// This is parent process
 
 						// ********************************Create a pipe 2 for timer
-						
+
 						int fd2[2];
 						if (pipe(fd2)==-1)
 						{
@@ -465,9 +450,9 @@ int main(int argc, char *argv[])
 							char notification[100];
 							sleep(TIME_OUT);
 							//read(fd2[0], notification, 1);
-							
+
 							int string_size=0;
-							int read_size;	
+							int read_size;
 							char buff[100];
 							FILE *file;
 							file = fopen("Notification.txt", "r");
@@ -478,15 +463,11 @@ int main(int argc, char *argv[])
 									string_size = ftell(file);
 									// go back to the start of the file
 									rewind(file);
-									//printf("File size:\n %d \n",string_size);
-									// Allocate a string that can hold it all
-									
-									//printf("size of allocated buffer: \n%d\n",sizeof(buff)); 
 									// Read it all in one operation
 										read_size = fread(buff, 1, sizeof(buff), file);
-									printf("Buffer in timer before %s \n",buff);	
+//-									printf("Buffer in timer before %s \n",buff);
 								}
-							fclose(file);	
+							fclose(file);
 
 							if (read_size !=4){
 								sprintf(notification,"TIMEOUT");
@@ -502,21 +483,21 @@ int main(int argc, char *argv[])
 							}
 							//write(fd2[1], notification, strlen(notification)+1);
 							close(fd2[1]);
-							
-								
+
+
 							exit(0);
 						}
 						// Parent process
-						else{ 
+						else{
 							check=0;
-							//int PACK=0;							
+							//int PACK=0;
 							while (check==0){
-								printf("This is parent process %d\n",send_index); 
+//-								printf("This is parent process %d\n",send_index);
 								sleep(1);
 
 								// OPEN FILE and READ AND SEND
 								int string_size=0;
-								int read_size;	
+								int read_size;
 								char buff[100];
 								memset(&buff, 0, sizeof(buff));
 								FILE *file;
@@ -528,26 +509,18 @@ int main(int argc, char *argv[])
 									string_size = ftell(file);
 									// go back to the start of the file
 									rewind(file);
-									//printf("File size:\n %d \n",string_size);
-									// Allocate a string that can hold it all
-									
-									//printf("size of allocated buffer: \n%d\n",sizeof(buff)); 
 									// Read it all in one operation
 										read_size = fread(buff, 1, sizeof(buff), file);
-									printf("Buffer in father %s \n",buff);	
+//-									printf("Buffer in father %s \n",buff);
 								}
-								fclose(file);		
-								
-									//{
-									//	printf("unable to copy file into buffer\n");
-									//	exit(1);
-									//}
+								fclose(file);
+
 								if(strncmp(buff, "ACK", 3) == 0)
 								{
 									check=1;
-									printf("Parent receive ACK=%s\n",buff);
+//-									printf("Parent receive ACK=%s\n",buff);
 									char temp[10];
-									bzero(temp,sizeof(temp));	
+									bzero(temp,sizeof(temp));
 									strncpy(temp,buff+3,strlen(buff));
 									num=atoi(temp);
 									count_ACK-=1;
@@ -561,12 +534,12 @@ int main(int argc, char *argv[])
 									kill(pid1,SIGKILL);
 									kill(pid2,SIGKILL);
 									printf("killing subsequent\n");
-									break;										
+									break;
 								}
 								fclose(fp);
 
 
-		
+
 							} // while check loop for checking ACK and timer
 						} // End of parent process 2
 					} // End of parent process 1
@@ -575,16 +548,19 @@ int main(int argc, char *argv[])
 			//} // send
 			printf("Current remaining size is %d\n",remaining_size);
 	} // For confirming sending done  by using remaining size
+          printf("PArt finish check=%d\n",check_large);
+
+  }// For the bigger file size
+			printf("Length of the buffer %d\n",strlen(file_buffer));
 			printf("SEND DONE\n");
 					// Reset to zero
 			for (int i=0; i<9;i++){
 				bzero(sub_buffer[i],sizeof(sub_buffer[i]));
-				bzero(file_buffer,sizeof(file_buffer));	
+				bzero(file_buffer,sizeof(file_buffer));
 			}
     close(s);
 	//sleep(15);
-    
-  //	} // main While loop
-  	return 0;		
-  }
 
+  //	} // main While loop
+  	return 0;
+  }

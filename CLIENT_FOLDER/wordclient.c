@@ -1,15 +1,9 @@
-/* Simple program to demonstrate a basic UDP client.
- * Reads commands from stdin and sends them to the server.
- * Requests random nouns, adjectives, and verbs as you wish.
- * A "quit" message from the client kills the server gracefully.
+/* Client to receive file by connecting to server-
+ * writtent by Minh from the original file of wordclient.c
  *
  * Compile using "gcc -o wordclient wordclient.c"
  */
- // sequence number, acknowledgement, time out, retransmission
- // name of file, how big is it?
-// word server
-// 736 = 8*92
-// 739=
+
 
 
 #include <stdio.h>
@@ -23,10 +17,9 @@
 
 #define MAX_BUF_LEN 1000000
 
-/* Hardcode the IP address of the server (local or remote) */
-/* #define SERVER_IP "127.0.0.1"   /* loopback interface */
+
 //#define SERVER_IP "136.159.16.7"  /* rsx1.cpsc.ucalgary.ca */
-#define SERVER_IP "127.0.0.1"  /* rsx1.cpsc.ucalgary.ca */
+#define SERVER_IP "127.0.0.1"  /* loopback */
 
 /* Edit as needed to match port of server */
 #define SERVER_PORT 8001
@@ -72,7 +65,7 @@ int main(void)
 			char savefilelist[1024];
 	while(c1==0){
 		  printf("Enter FILE to know information of files in server\n");
-	
+
 			scanf("%s", message);
 			if(strncmp(message, "FILE", 4) == 0) c1=1;
 	}
@@ -103,7 +96,7 @@ int main(void)
   while (check==0){
 			memset(&message, 0, sizeof(message));
 	    printf("Enter FILE name\n");
-			scanf("%s", message);      
+			scanf("%s", message);
       count = send(sock, message, sizeof(message), 0);
       if (count < 0) {
         printf("Error in send()\n");
@@ -143,7 +136,7 @@ int main(void)
   }
 	filesize=atoi(temp);
 	printf("The file name is %s size is %d\n",filename, filesize);
-	close(sock); // TCP	
+	close(sock); // TCP
 
 
     //-------------UDP ------------------------
@@ -170,7 +163,7 @@ int main(void)
 					return 1;
       }
 		si_server.sin_port = htons(SERVER_PORT);
-		
+
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
       {
 	printf("Could not setup a socket!\n");
@@ -182,6 +175,9 @@ int main(void)
 											,"00001000","00000100","00000010","00000001","11111111"};
 		char sub_buffer[9][10000];
 		char total_receive[1000000];
+              char total_receive1[1000000];
+              char total_receive2[1000000];
+              char total_receive3[1000000];
 		memset(&sub_buffer, 0, sizeof(sub_buffer));
 		memset(&total_receive, 0, sizeof(total_receive));
 		check=0;
@@ -193,21 +189,34 @@ int main(void)
 					scanf("%s", buf);
 
 	if (sendto(s, buf, strlen(buf), 0, server, sizeof(si_server)) == -1)
-	{							
+	{
 		printf("sendto failed\n");
 		return 1;
 	}
+      int check_large=0;
+      int half=0;
+      int check_size=0;
+      if(strcmp(filename,"256KB.txt")==0){
+          check_large=4;
+          half=filesize/2;
+          check_size=half;
+      }
+      else{
+          check_large=1;
+          check_size=filesize;
+      }
+while(check_large>0){
 	int remaining=0;
 	int checklast=0;
 	int test=0;
 	memset(&ack_recv, 0, sizeof(ack_recv));// make all acknowledgement receivement to zero
-    while(fsize<filesize)
+    while(fsize<check_size)
       {
 		  int count_ACK=0;
 		  while(count_ACK<8){
 			memset(&buf, 0, sizeof(buf));
 			//memset(&ack_recv, 0, sizeof(ack_recv));
-			
+
 			if ((readBytes=recvfrom(s, buf, MAX_BUF_LEN, 0, server, &len))==-1)
 						{
 							printf("Read error!\n");
@@ -223,16 +232,16 @@ int main(void)
 							for (int i=0; i<8;i++){
 								//printf("The sequence is %s and order is %s\n",sequence[i],order);
 								//printf("Compare %d\ns",strcmp(sequence[i],order));
-								
+
 
 								if (strcmp(sequence[i],order)==0){
-											printf("%d ACK=%d File size is %d\n",i,ack_recv[i],fsize);
+//-											printf("%d ACK=%d File size is %d\n",i,ack_recv[i],fsize);
 
-											printf("Checklast %d\n",checklast);
+//-											printf("Checklast %d\n",checklast);
 											if(ack_recv[i]==0){ // Haven't received before
 												if(checklast==1)
 												{
-													
+
 													strncpy(sub_buffer[i],buf+8,9);
 													if (fsize<filesize){
 														strcat(total_receive,sub_buffer[i]);
@@ -244,7 +253,7 @@ int main(void)
 
 												}
 												else{
-													
+
 													strncpy(sub_buffer[i],buf+8,strlen(buf));
 													fsize+=strlen(sub_buffer[i]);
 													//remaining=filesize-fsize;
@@ -257,8 +266,8 @@ int main(void)
 												sprintf(ack,"ACK%d",i);
 												ack[strlen(ack)]='\0';
 												count_ACK+=1;
-												printf("Current ACK %d\n",count_ACK);
-												printf("--------------------\n");
+//												printf("Current count ACK %d\n",count_ACK);
+//-												printf("--------------------\n");
 												if (count_ACK==8) {
 													if (checklast==0 && fsize!= filesize){
 														count_ACK=0;
@@ -279,43 +288,77 @@ int main(void)
 											break;
 
 											memset(&sub_buffer[i], 0, sizeof(sub_buffer[i]));
-							
-									
-							
+
+
+
 								} // if of comparing the order
 							}// for loop to check the sequence
-							
+
 							//if(fsize==filesize) break;
 						//}
 
-					}
+					} // Receiving the data from server
+          printf("Current file size is %d want check %d count ACK=%d\n",fsize,check_size,count_ACK);
+          if(fsize==check_size) {
+
+            break;
+          }
 		  }// end of count ACK
 		  printf("Current file size is %d want %d\n",fsize,filesize);
-		  if(fsize==filesize) break;
+		  if(fsize==check_size) {
+        fsize=0;
+        break;
+      }
 		  memset(&sub_buffer, 0, sizeof(sub_buffer));
 
 	  }	// End of checking file size
+    if(check_large==1){
+        check_large=0;
+    }
+    else if(check_large==4){
 
+        strcpy(total_receive1,total_receive);
+        printf("Finish first part, %d,\n%s\n",strlen(total_receive1),total_receive1);
+        check_size=half-6640;
+        check_large=3;
+    }
+    else if(check_large==3){
+
+        strcpy(total_receive2,total_receive);
+        printf("Finish second part, %d,\n%s\n",strlen(total_receive2),total_receive2);
+        check_size=6640;
+        check_large=2;
+    }
+    else if(check_large==2){
+        strcpy(total_receive3,total_receive);
+        printf("Finish last part, %d,\n%s\n",strlen(total_receive3),total_receive3);
+        strcat(total_receive2,total_receive3);
+        strcat(total_receive1,total_receive2);
+        strcpy(total_receive,total_receive1);
+
+        check_large=0;
+    }
+  } // End check large
 						FILE *f;
 						remove(filename);
 						f = fopen(filename, "w");
 						size_t file_size=ftell(f);
 						//if (file_size < filesize) {
-							
+
 							fprintf(f, "%s", total_receive);
 						//}
 						fclose(f);
 
 						//printf("From server: \"%s\"\n\n", total_receive);
 						printf("Done for file receiving\n");
-		
+
 
 			//printf("The file list from server is %s\n",&savefilelist);
 		close(s);  // UDP
 		//sleep(65);
 	//} main while loop
 
-	
-    
+
+
     return 0;
   }
